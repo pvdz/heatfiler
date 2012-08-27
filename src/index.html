@@ -24,23 +24,25 @@
         text-align: center;
       }
       #close-function-list:hover { border-color: red; }
+
+      textarea { margin-right: 5px; }
     </style>
   </head>
   <body>
     <div>This is a heatmap profiler slash code coverage tool. Open sourced on <a href="http://github.com/heatfiler/">github</a>. See blog post. For help on usage, read the docs. The console is your friend (errors...) ;)</div>
     <div style="border-bottom: 1px solid black; padding-bottom: 3px; margin-bottom: 2px;">By Peter van der Zee, &copy; 2012, <a href="http://qfox.nl/">qfox.nl</a></div>
     <div style="overflow:auto; float:right;">
-      <button id="ping-code-storage" style="float:right;">ping code from local storage</button>
-      <button id="run-code-storage" style="float:right;">run code to local storage</button>
-      <button id="run-code-local" style="float:right;">run code localy</button>
+      <button id="ping-code-storage" style="float:right;">Ping code from local storage</button>
+      <button id="run-code-storage" style="float:right;">Run code to local storage</button>
+      <button id="run-code-local" style="float:right;">Run code localy</button>
 
-      <button id="ping-integration" style="float:right; margin-right: 20px;">ping integration</button>
+      <button id="ping-integration" style="float:right; margin-right: 20px;">Ping integration</button>
 
-      <button id="ping-files-storage" style="clear:right; float:right;">ping files from local storage</button>
-      <button id="run-files-storage" style="float:right;">run files to local storage</button>
-      <button id="run-files-local" style="float:right;">run files localy</button>
+      <button id="ping-files-storage" style="clear:right; float:right;">Ping files from local storage</button>
+      <button id="run-files-storage" style="float:right;">Run files to local storage</button>
+      <button id="run-files-local" style="float:right;">Run files localy</button>
 
-      <label><input type="checkbox" id="toggle-inputs"/>hide inputs</label>
+      <label><input type="checkbox" id="toggle-inputs"/>Hide inputs</label>
     </div>
 
     <div style="overflow:auto;">
@@ -56,12 +58,8 @@
     </div>
 
 
-    <textarea id="files" style="clear:right;width: 300px; height:500px; float:right;" placeholder="files (one per line, prefix with +/- to include or exclude a file from profiling), included as is through regular xhr">
-+ /zeparser2/src/tok.js
-+ /zeparser2/src/par.js
-- /zeparser2/src/profiler.js
-    </textarea>
-    <textarea id="output" style="width: 400px; height:500px; float:right;" placeholder="translated code will appear here"></textarea>
+    <textarea id="files" style="clear:right;width: 300px; height:500px; float:right;" placeholder="files (one per line, prefix with +/- to include or exclude a file from profiling), url included as is through regular xhr"></textarea>
+    <textarea id="output" style="width: 400px; height:500px; float:right;" placeholder="translated code will appear here for your pleasure"></textarea>
     <textarea id="input" style="width: 400px; height:500px; float:right;" placeholder="input the js to profile here">
 for (var i=0; i<20; ++i) foo(i,i*10);
 function foo(a,b){
@@ -74,7 +72,7 @@ function bar(a,b){
   return a>5 && a+b || a-b;
 }
 bar(23,55);
-    </textarea>
+</textarea>
     <pre id="heatmap" style="width:400px; height:500px; padding: 3px; margin: 0 4px 0 0;"></pre>
 
     <script src="../lib/zeparser/Tokenizer.js"></script>

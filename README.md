@@ -9,6 +9,12 @@ You can also easily integrate Heatfiler in an existing project by including the 
 
 This project was hacked together in about two days. It uses ZeParser as the JS parsing and rewriting backend.
 
+## Demo
+
+See [heatfiler.qfox.nl](http://heatfiler.qfox.nl/) for a live demo of the profiler.
+
+I've also added two integration examples. Open up [this](http://heatfiler.qfox.nl/dragon.php) or [this](http://heatfiler.qfox.nl/parallax.php) and then open [heatfiler](http://heatfiler) in another tab (click `Ping integration` there). The heatmap updates real-time.
+
 ## How it works
 
 The profiler parses your script, injects "ping" calls into statements and expressions, and runs it. These "pings" will simply count how many times a certain (small) part of the script is executed. These stats are collected and processed. They are represented in the heatmap in a shade of red which signifies how often that part is executed. Red parts mean the script is executed often. To determine this it will check which part was called most often. All other counts are relative to this number. The shade of red is too.
@@ -101,10 +107,18 @@ When heatfiler loads in your project, it will search for all `script` tags (whet
 
 If nothing happens, please check your console. It's possible something went wrong in the transformation. Be a champ and try to figure out what went wrong and report it in the issue tracker for this repo. Would be great! :)
 
+I've added two examples for integration, from two rather old projects. You can use them as an example, or to play around with.
+
+First open [Dragon fractal thingy](http://heatfiler.qfox.nl/dragon.php) or [parallax demo](http://heatfiler.qfox.nl/parallax.php) .
+
+Then open [heatfiler](http://heatfiler) in another tab and click `Ping integration`. Enjoy the magic :)
+
 ## Blog post
 
-For (even) more information, check my blost post
+For (even) more information, check the blog post, which I will post soon :p
 
 ## Have fun
 
-Hope you liked it :) Taking (reasonable) pull requests, will fix important bugs, not sure if, and if so when, I'll continue to work on this project.
+Hope you liked it :)
+
+Taking (reasonable) pull requests, will fix important bugs, not sure if, and if so when, I'll continue to work on this project.
