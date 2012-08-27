@@ -13,7 +13,7 @@ This project was hacked together in about two days. It uses ZeParser as the JS p
 
 See [heatfiler.qfox.nl](http://heatfiler.qfox.nl/) for a live demo of the profiler.
 
-I've also added two integration examples. Open up [this](http://heatfiler.qfox.nl/dragon.php) or [this](http://heatfiler.qfox.nl/parallax.php) and then open [heatfiler](http://heatfiler) in another tab (click `Ping integration` there). The heatmap updates real-time.
+I've also added two integration examples. Open up [this](http://heatfiler.qfox.nl/dragon.php) or [this](http://heatfiler.qfox.nl/parallax.php) and then open [heatfiler](http://heatfiler.qfox.nl/) in another tab (click `Ping integration` there). The heatmap updates real-time.
 
 ## How it works
 
@@ -111,7 +111,7 @@ I've added two examples for integration, from two rather old projects. You can u
 
 First open [Dragon fractal thingy](http://heatfiler.qfox.nl/dragon.php) or [parallax demo](http://heatfiler.qfox.nl/parallax.php) .
 
-Then open [heatfiler](http://heatfiler) in another tab and click `Ping integration`. Enjoy the magic :)
+Then open [heatfiler](http://heatfiler.qfox.nl/) in another tab and click `Ping integration`. Enjoy the magic :)
 
 ## Blog post
 
