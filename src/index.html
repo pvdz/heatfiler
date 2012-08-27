@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      #heatmap span { cursor: help; }
+      #function-overview {
+        position: absolute;
+        top: 10px;
+        left: 50px;
+        background-color: black;
+        color: white;
+        padding: 5px;
+        border-radius: 5px;
+        list-style: none;
+      }
+      #function-overview li:hover { color:red; }
+
+      #close-function-list {
+        cursor: pointer;
+        border: 1px solid white;
+        border-radius: 5px;
+        padding: 3px;
+        margin-bottom: 5px;
+        text-align: center;
+      }
+      #close-function-list:hover { border-color: red; }
+    </style>
+  </head>
+  <body>
+    <div>This is a heatmap profiler slash code coverage tool. Open sourced on <a href="http://github.com/heatfiler/">github</a>. See blog post. For help on usage, read the docs. The console is your friend (errors...) ;)</div>
+    <div style="border-bottom: 1px solid black; padding-bottom: 3px; margin-bottom: 2px;">By Peter van der Zee, &copy; 2012, <a href="http://qfox.nl/">qfox.nl</a></div>
+    <div style="overflow:auto; float:right;">
+      <button id="ping-code-storage" style="float:right;">ping code from local storage</button>
+      <button id="run-code-storage" style="float:right;">run code to local storage</button>
+      <button id="run-code-local" style="float:right;">run code localy</button>
+
+      <button id="ping-integration" style="float:right; margin-right: 20px;">ping integration</button>
+
+      <button id="ping-files-storage" style="clear:right; float:right;">ping files from local storage</button>
+      <button id="run-files-storage" style="float:right;">run files to local storage</button>
+      <button id="run-files-local" style="float:right;">run files localy</button>
+
+      <label><input type="checkbox" id="toggle-inputs"/>hide inputs</label>
+    </div>
+
+    <div style="overflow:auto;">
+      <label style="float:left;"><input type="radio" id="set-absolute-max" name="setting-relative" value="absolute"> Use max from any file</label>
+      <label style="float:left;"><input type="radio" id="set-relative-max" name="setting-relative" value="relative" checked> Use max from individual file</label>
+
+      <label style="clear: left; float:left;"><input type="radio" id="enable-code-coverage" name="setting-code-coverage" value="enabled"> Code coverage</label>
+      <label style="float:left;"><input type="radio" id="disable-code-coverage" name="setting-code-coverage" value="disabled" checked> Profiling</label>
+
+      <div id="file-tabs">
+        <button id="open-function-list" style="clear:left; float: left; display:none;">function list</button>
+      </div>
+    </div>
+
+
+    <textarea id="files" style="clear:right;width: 300px; height:500px; float:right;" placeholder="files (one per line, prefix with +/- to include or exclude a file from profiling), included as is through regular xhr">
++ /zeparser2/src/tok.js
++ /zeparser2/src/par.js
+- /zeparser2/src/profiler.js
+    </textarea>
+    <textarea id="output" style="width: 400px; height:500px; float:right;" placeholder="translated code will appear here"></textarea>
+    <textarea id="input" style="width: 400px; height:500px; float:right;" placeholder="input the js to profile here">
+for (var i=0; i<20; ++i) foo(i,i*10);
+function foo(a,b){
+  return a>5 && a+b || a-b;
+}
+foo(23,55);
+
+for (var i=0; i<50; ++i) bar(i,i*10);
+function bar(a,b){
+  return a>5 && a+b || a-b;
+}
+bar(23,55);
+    </textarea>
+    <pre id="heatmap" style="width:400px; height:500px; padding: 3px; margin: 0 4px 0 0;"></pre>
+
+    <script src="../lib/zeparser/Tokenizer.js"></script>
+    <script src="../lib/zeparser/ZeParser.js"></script>
+    <br/>
+    <script src="index.js"></script>
+  </body>
+</html>
