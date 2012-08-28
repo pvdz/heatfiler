@@ -115,7 +115,7 @@ Then open [heatfiler](http://heatfiler.qfox.nl/) in another tab and click `Ping 
 
 ## Blog post
 
-For (even) more information, check the blog post, which I will post soon :p
+For (even) more information, check [the blog post](http://qfox.nl/weblog/268) :p
 
 ## Have fun
 
