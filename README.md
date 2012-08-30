@@ -34,7 +34,7 @@ The `src/index.html` is the main entry point of the tool. It's a "simple" UI wit
 - (E) Run files locally: Take list of files from the right textarea. Fetch them through (regular!) xhr. Files without a `-` before it are NOT included in the profiling, but are still loaded. Any other file is loaded and transformed and shown in the heatmap. All files are executed. Note that this will show buttons for each file.
 - (F) Run files to local storage: Same as "Run files locally" button, except that it won't display a heatmap and will send the stats to `localStorage`.
 - (G) Ping files from local storage: Same as "Run files locally" button, except that it won't execute the code. It will ping `localStorage` once a second for stats and reflect them in the heatmap. See notes below.
-- (F) Node integration: Include heatfiler in the initial part of your project. Hooks into `require` and stores stats in a file so you can xhr to them for the heatmap.
+- (F) Ping node: Include heatfiler in the initial part of your project. Hooks into `require` and stores stats in a file so you can xhr to them for the heatmap.
 
 So you have four choices;
 
