@@ -133,7 +133,7 @@ Node will also transfer the sources that were fetched through require, so no nee
 
 Note that in my tests, node did run considerably slower than it usually would. But this maybe due to my older node version (and so older v8 engine). Other than that, things looked fine.
 
-Note: this is using the undocumented `module._compile` (but it does so exactly the same as node would). I was ensured this is the only way of doing it and the only alternative would be that you would be required to manually store translated source into your project. This was unacceptable for me so I decided this was worth the cause. It turns out to be the only way to be the middel man between a fetch for `require` and the evaluation. But it works quite well. I was also told this will remain to be supported on the `1.x` branch. So if node hits v2, beware.
+Note: this is using the undocumented `module._compile` (but it does so exactly the same as node would). I was ensured this is the only way of doing it and the only alternative would be that you would be required to manually store translated source into your project. This was unacceptable for me so I decided this was worth the cause. It turns out to be the only way to be the middle man between a fetch for `require` and the evaluation. But it works quite well. I was also told this will remain to be supported on the `1.x` branch. So if node hits v2, beware.
 
 ## Blog post
 
