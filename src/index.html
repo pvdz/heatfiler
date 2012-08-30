@@ -42,7 +42,10 @@
       <button id="run-files-storage" style="float:right;">Run files to local storage</button>
       <button id="run-files-local" style="float:right;">Run files localy</button>
 
-      <label><input type="checkbox" id="toggle-inputs"/>Hide inputs</label>
+      <input id="stats-file-location" style="float:right; clear:right;" value="../../gonzales/profiler_stats.js"/>
+      <button id="ping-node" style="float:right; margin-right: 20px;">Ping node</button>
+
+      <label style="margin-right: 50px; float:right;"><nobr><input type="checkbox" id="toggle-inputs"/>Hide inputs</nobr></label>
     </div>
 
     <div style="overflow:auto;">
@@ -58,7 +61,11 @@
     </div>
 
 
-    <textarea id="files" style="clear:right;width: 300px; height:500px; float:right;" placeholder="files (one per line, prefix with +/- to include or exclude a file from profiling), url included as is through regular xhr"></textarea>
+    <textarea id="files" style="clear:right;width: 300px; height:500px; float:right;" placeholder="files (one per line, prefix with +/- to include or exclude a file from profiling), url included as is through regular xhr">
+      + ../../zeparser2/src/tok.js
+      + ../../zeparser2/src/par.js
+      - ../../zeparser2/src/profiler.js
+    </textarea>
     <textarea id="output" style="width: 400px; height:500px; float:right;" placeholder="translated code will appear here for your pleasure"></textarea>
     <textarea id="input" style="width: 400px; height:500px; float:right;" placeholder="input the js to profile here">
 for (var i=0; i<20; ++i) foo(i,i*10);

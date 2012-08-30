@@ -1,15 +1,21 @@
-/*
- project integration
- ui polish
+/**
+ * like-to-haves:
+ * - requirejs integration
+ * - nodejs integration
+ * - heatmap thumb for navigation
+ * - micro time tracking, alongside of number of executions
+ * - magic.
  */
+(function(window){
 
-new function(){
+window.heatfiler = {};
 
 var currentPage = -1; // like tabs for files, what's the currently shown tab?
 var sendToLocalStorage = false; // should pings be sent to localStorage too? makes it much much slower, but hey
 var statsRelativeToPage = true; // compare to max of all files or max of each file individually?
 var relativeToFunction = -1; // when zooming in on a function, this is the tokpos
 var codeCoverage = false; // make anything red that has hits=0, anything else goes white
+var nodeMode = false; // are we running as a nodejs host? will write stats to a file and hook into require system
 
 // contains an array for every file that contains objects. each object holds metric information
 var hits = {};
@@ -17,6 +23,8 @@ var hits = {};
 var hash = {};
 // for each file, an object with spans for all metrics to be displayed, by token id (only generated when displaying heatmap)
 var spans = {};
+// for each file, a PRE tag will exist in the heatmaps array, so you can easily swap out heatmaps
+var heatmaps = {};
 // store the ping timer so we can kill it
 var lastTimer = -1;
 // remember tokpos ids for function keywords for function list
@@ -25,6 +33,21 @@ var funcs = {};
 var trees = {};
 // hide input fields?
 var hideInputs = false;
+
+// for node, count how many files ("pages") were loaded
+var nodeFileCounter = 0;
+// for node, track the file names that have been loaded (to get the exact filename strings to check for)
+var nodeFilesLoaded = [];
+// for node, send the sources that you're using
+var nodeSourcesProfiled = [];
+// where should we store the stats?
+var targetStatsFile = './profile_stats.js';
+
+// node failsafe for DOM stuff
+var document = window.document || (window.document = {
+  getElementById: function(){ return false; },
+  querySelectorAll: function(){ return []; }
+});
 
 if (document.getElementById('run-code-local')) document.getElementById('run-code-local').onclick = function(){
   currentPage = 0;
@@ -37,7 +60,7 @@ if (document.getElementById('run-code-local')) document.getElementById('run-code
 
   spans = {0:{}};
   var heatmap = document.getElementById('heatmap');
-  generateHeatmap(0, heatmap, trees[0], spans[0]);
+//  generateHeatmap(0, heatmap, trees[0], spans[0]);
 
   hits = {0:[]};
   hash = {0:{}};
@@ -53,7 +76,7 @@ if (document.getElementById('run-files-local')) document.getElementById('run-fil
   sendToLocalStorage = false;
   clearTimeout(lastTimer);
 
-  getFiles(filesLoadedToRunLocal);
+  getFiles(false, filesLoadedToRunLocal);
 };
 
 if (document.getElementById('ping-code-storage')) document.getElementById('ping-code-storage').onclick = function(){
@@ -97,13 +120,13 @@ if (document.getElementById('ping-files-storage')) document.getElementById('ping
   sendToLocalStorage = false;
   clearTimeout(lastTimer);
 
-  getFiles(filesLoadedToPingStorage);
+  getFiles(true, filesLoadedToPingStorage);
 };
 if (document.getElementById('run-files-storage')) document.getElementById('run-files-storage').onclick = function(){
   sendToLocalStorage = true;
   clearTimeout(lastTimer);
 
-  getFiles(filesLoadedToRunStorage);
+  getFiles(false, filesLoadedToRunStorage);
 };
 
 if (document.getElementById('set-relative-max')) document.getElementById('set-relative-max').onclick = function(){
@@ -225,11 +248,28 @@ if (document.getElementById('ping-integration')) document.getElementById('ping-i
   hits = {};
   hash = {};
   spans = {};
-  var heatmaps = [];
+  heatmaps = [];
 
   showFiles(toLoad, heatmaps, hits, hash, spans);
 
   pingResultsLocalStorage();
+};
+
+if (document.getElementById('ping-node')) document.getElementById('ping-node').onclick = function(){
+  // in this case, we ping the server for the stats, rather than local storage
+  // on top of that, we also add the loaded files to the files textarea
+
+  sendToLocalStorage = false;
+  clearTimeout(lastTimer);
+
+  hits = {};
+  hash = {};
+  spans = {};
+  trees = {};
+  heatmaps = [];
+
+  // start pinging the server for stats
+  pingResultsNode(20);
 };
 
 if (document.getElementById('toggle-inputs')) document.getElementById('toggle-inputs').onclick = function(){
@@ -331,11 +371,10 @@ var GET = function(url, callback){
   xhr.send(null);
 };
 
-var getFiles = function(loaded){
+var parseFilesField = function(){
   var files = document.getElementById('files').value;
   files = files.split('\n');
 
-  var waitingFor = [];
   var toLoad = [];
 
   currentPage = -1;
@@ -345,26 +384,36 @@ var getFiles = function(loaded){
       var exclude = file[0] === '-';
       if (file) {
         file = file.replace(/^[-+\s]?\s*/,'');
-        waitingFor.push(file);
-        var obj = {name:file, profile:!exclude};
+        var obj = {url:file, profile:!exclude};
         toLoad.push(obj);
-        GET(file, function(err, txt){
-          obj.source = txt;
-          if (!exclude && currentPage == -1) {
-            console.log("setting currentPage to", i, file)
-            currentPage = i;
-          }
 
-          var pos = waitingFor.indexOf(file);
-          waitingFor.splice(pos,1);
-          if (waitingFor.length == 0) loaded(toLoad);
-        });
+        if (!exclude && currentPage == -1) {
+          currentPage = i;
+        }
       }
     }
   });
 
-  if (!waitingFor.length) console.log("No files to load...");
+  return toLoad;
 };
+var getFiles = function(forHeatmapOnly, onFinished){
+  var toLoad = parseFilesField();
+  if (toLoad.length == 0) return console.log("No files to load...");
+
+  var n = 0;
+  toLoad.forEach(function(obj){
+    // for heatmap, only fetch files to profile. otherwise fetch them all (to run them)
+    if (obj.profile || !forHeatmapOnly) {
+      ++n;
+      GET(obj.url, function(err, txt){
+        if (err) return console.log("Some error while fetching file", err);
+        obj.source = txt;
+        if (--n == 0) onFinished(toLoad);
+      });
+    }
+  });
+};
+
 var filesLoadedToRunLocal = function(toLoad){
   // start pinging now
   pingResultsLocaly();
@@ -372,11 +421,11 @@ var filesLoadedToRunLocal = function(toLoad){
   hits = {};
   hash = {};
   spans = {};
-  var heatmaps = [];
+  heatmaps = [];
 
   translateShowAndLoad(toLoad, heatmaps, hits, hash, spans);
 
-  showFileButtons(heatmaps);
+  showFileButtons(heatmaps, toLoad.map(function(t){ return t.url; }));
 
   document.body.replaceChild(heatmaps[currentPage], document.getElementById('heatmap'));
 };
@@ -390,17 +439,17 @@ var filesLoadedToPingStorage = function(toLoad){
   hits = {};
   hash = {};
   spans = {};
-  var heatmaps = [];
+  heatmaps = [];
 
   showFiles(toLoad, heatmaps, hits, hash, spans);
 
-  pingResultsLocalStorage();
+  pingResultsLocalStorage(20);
 };
 
 var parse = function(input){
-  localStorage.setItem('input', input);
-  var tokenizer = new Tokenizer(input);
-  var parser = new ZeParser(input, tokenizer, []);
+  if (window.localStorage) localStorage.setItem('input', input);
+  var tokenizer = new window.Tokenizer(input);
+  var parser = new window.ZeParser(input, tokenizer, []);
   parser.parse();
   parser.tokenizer.fixValues();
 
@@ -447,10 +496,10 @@ var showFiles = function(toLoad, heatmaps, hits, hash, spans){
     }
   });
 
-  showFileButtons(heatmaps);
+  showFileButtons(heatmaps, toLoad.map(function(t){ return t.url; }));
   document.body.replaceChild(heatmaps[currentPage], document.getElementById('heatmap'));
 };
-var showFileButtons = function(heatmaps){
+var showFileButtons = function(heatmaps, files){
   var parent = document.getElementById('file-tabs');
   while (parent.children.length > 1) parent.removeChild(parent.children[1]);
 
@@ -461,6 +510,7 @@ var showFileButtons = function(heatmaps){
     var button = document.createElement('button');
     button.innerHTML = 'file '+(i+1);
     button.style.cssFloat = 'left';
+    button.title = files[i];
     button.onclick = function(){
       document.body.replaceChild(e, document.getElementById('heatmap'));
       currentPage = i;
@@ -685,15 +735,62 @@ var pingResultsLocaly = function repeat(){
     repeat();
   }, 1000);
 };
-var pingResultsLocalStorage = function repeat(){
+var pingResultsLocalStorage = function repeat(n){
   lastTimer=setTimeout(function(){
     hits=JSON.parse(localStorage.getItem('profiler-hits'));
     pingResults();
-    repeat();
-  }, 1000);
+    repeat(1000);
+  }, n);
 };
-var pingResults = function repeat(){
-  var pages = Object.keys(hash);
+var pingResultsNode = function repeat(n){
+  setTimeout(function(){
+    // get data from localStorage
+    GET(document.getElementById('stats-file-location').value, function(err, data){
+      if (err) return console.log("Some error while fetching stats", err);
+
+      var data = JSON.parse(data); // files, hits, sources
+      hits = data.hits;
+
+      // update files textarea
+      document.getElementById('files').value = data.files.join('\n');
+
+      // find the files we havent updated yet
+      var files = parseFilesField();
+      files.forEach(function(o,i){
+        if (o.profile && !trees[i]) {
+          // parse
+          trees[i] = parse(data.sources[i]);
+
+          // generate
+          heatmaps[i] = document.createElement('pre');
+          heatmaps[i].id = 'heatmap';
+          generateHeatmap(i, heatmaps[i], trees[i], spans[i] = {});
+
+          // save
+          var trans = transform(trees[i], i);
+          o.transformed = trans;
+        }
+      });
+
+      showFileButtons(heatmaps, files.map(function(t){ return t.name; }));
+      var current = document.getElementById('heatmap');
+      if (current != heatmaps[currentPage] && currentPage != -1) {
+        document.body.replaceChild(heatmaps[currentPage], current);
+      } else if (currentPage == -1) {
+        console.log("No stats to show... no files are monitored")
+      }
+
+      // we can be sure all files to profile have a heatmap now
+      // refresh heatmap
+      pingResults();
+
+      // queue new request
+      repeat(2000);
+    });
+  }, n);
+};
+var pingResults = function(){
+  var pages = Object.keys(hits);
   if (!statsRelativeToPage) {
     // sort all pages to get to the highest
     var highest = Math.max.apply(null, pages.map(function(page){
@@ -782,39 +879,181 @@ var pingResults = function repeat(){
   });
 };
 
+/**
+ * To enable this, simply require(<this file>).heatfiler.runNode([<files to profile>], <custom file location for stats>)
+ * After this, the entire project is eligable for profiling. Whenever you require a file it will
+ * check the filesToProfile array for a match (note that this uses the complete resolved file string). If so
+ * it will transform it and start profiling it. Stats are written to the output file once every two seconds.
+ * You can fire up the client in a browser, point it towards your file (should be xhr-able from where you
+ * are loading the client) and go. You'll get a list of all the required files from node (and whether they are
+ * profiled or not), which keeps updating (so newly required files will eventually appear too). This should
+ * make it easier for you to determine the exact file-strings to pass on for profiling. Other than that, the
+ * client should work as usual. Note that node will run considerably slower with the profiler enabled. Though
+ * results may vary on that. I hope so for your sake :)
+ *
+ * @param [string[]] [filesToProfile=[]]
+ * @param [string] [customTargetStatsFile='./profile_stats.js']
+ */
+var hookIntoNodejs = function(filesToProfile, customTargetStatsFile){
+  if (!filesToProfile || !(filesToProfile instanceof Array)) {
+    filesToProfile = [];
+    console.log("Warning: no files to profile, profiler will not do anything... will write stats after 5 seconds...");
+    setTimeout(toFile, 5000);
+  }
+  if (customTargetStatsFile) targetStatsFile = customTargetStatsFile;
+
+  // will have to work around this for the build version...
+  window.Tokenizer = require('../lib/zeparser/Tokenizer.js').Tokenizer;
+  window.ZeParser = require('../lib/zeparser/ZeParser.js').ZeParser;
+
+  hash = {};
+  trees = {};
+
+  // this is the original loader in the node.js source:
+  // https://github.com/joyent/node/blob/master/lib/module.js#L470
+  //  Module._extensions['.js'] = function(module, filename) {
+  //    var content = NativeModule.require('fs').readFileSync(filename, 'utf8');
+  //    module._compile(stripBOM(content), filename);
+  //  };
+  // we want to do the same, but add our hook. so yes, we're abusing internals here
+  // if you have a better way to do it; tell me. If your method involves saving
+  // manual converted files; dont tell me.
+
+  // https://github.com/joyent/node/blob/master/lib/module.js#L458
+  // (ok, this isnt rocket science)
+  var stripBOM = function(content) {
+    // Remove byte order marker. This catches EF BB BF (the UTF-8 BOM)
+    // because the buffer-to-string conversion in `fs.readFileSync()`
+    // translates it to FEFF, the UTF-16 BOM.
+    if (content.charCodeAt(0) === 0xFEFF) {
+      content = content.slice(1);
+    }
+    return content;
+  };
+  var fs = require('fs');
+
+  require.extensions['.js'] = function(module, filename) {
+    var content = fs.readFileSync(filename, 'utf8');
+
+    // only transform to profiler code if in array
+    if (filesToProfile.indexOf(filename) >= 0) {
+
+      nodeSourcesProfiled.push(content);
+
+      var tree = trees[nodeFileCounter] = parse(content);
+      content = transform(tree, nodeFileCounter);
+
+      prepareHitsHash(tree, hits[nodeFileCounter]=[], hash[nodeFileCounter]={});
+
+      // inject a heatfiler variable into each source. this will hold all the methods we need...
+      content =
+        'var heatfiler = require(\''+__filename+'\');\n' +
+        // expose the two globals
+        'var FOO = heatfiler.FOO;\n' +
+        'var BAR = heatfiler.BAR;\n' +
+        content;
+
+      nodeFilesLoaded.push('+ '+filename);
+    } else {
+      nodeFilesLoaded.push('- '+filename);
+      nodeSourcesProfiled.push(null);
+
+    }
+
+    // this doohicky does the magic of turning source into js
+    module._compile(stripBOM(content), filename);
+
+    ++nodeFileCounter;
+  };
+
+  // from now on, any required file that is require'd and also
+  // in the passed on filesToProfile array, will be translated
+  // for the heatmap. joy!
+
+  window.heatfiler.filesToProfile = filesToProfile;
+
+  nodeMode = true;
+
+  window.BAR = function(id,a,b){
+    // statement or expression-part
+    ++hash[id][a].hits;
+    toFile();
+  };
+  window.FOO = function(id,a){
+    // a function call
+    ++hash[id][a].hits;
+    toFile();
+  };
+};
+
 // this is the stats gathering part
 // stores it to local storage, if mode is enabled. throttled.
 var lastFlush = Date.now();
+var dateNowThrottle = 0;
 var timer = -1;
 window.BAR = function(id,a,b){
   // statement or expression-part
   ++hash[id][a].hits;
   if (sendToLocalStorage) toLocalStorage();
+  // for nodeMode, the BAR function is replaced with a more efficient one
 };
 window.FOO = function(id,a){
   // a function call
   ++hash[id][a].hits;
   if (sendToLocalStorage) toLocalStorage();
+  // for nodeMode, the FOO function is replaced with a more efficient one
 };
 var toLocalStorage = function(){
-  if (Date.now() - lastFlush > 2000) {
-    localStorage.setItem('profiler-hits', JSON.stringify(hits));
-    lastFlush = Date.now();
-    if (timer == -1) {
-      // this timer will block while blocking code is running
-      // it will only be rescheduled once and will make sure
-      // that stuff is flushed after the code finishes
-      timer = setTimeout(function(){
-        timer = -1;
-        localStorage.setItem('profiler-hits', JSON.stringify(hits));
-        lastFlush = Date.now();
-      }, 20);
+  if (!(++dateNowThrottle < 1000000)) {
+    dateNowThrottle = 0;
+    if (Date.now() - lastFlush > 2000) {
+      localStorage.setItem('profiler-hits', JSON.stringify(hits));
+      lastFlush = Date.now();
     }
+  }
+  if (timer == -1) {
+    // this timer will block while blocking code is running
+    // it will only be rescheduled once and will make sure
+    // that stuff is flushed after the code finishes
+    timer = setTimeout(function(){
+      timer = -1;
+      localStorage.setItem('profiler-hits', JSON.stringify(hits));
+      lastFlush = Date.now();
+    }, 20);
+  }
+};
+var toFile = function(){
+  // this is for nodeMode. write the stats to a local file
+  // once every second or so.
+  if (!(++dateNowThrottle < 1000000)) {
+    dateNowThrottle = 0;
+    if (Date.now() - lastFlush > 2000) {
+      var data = {files:nodeFilesLoaded,hits:hits,sources:nodeSourcesProfiled};
+      require('fs').writeFileSync('profiler_stats.js', JSON.stringify(data), 'utf8');
+      lastFlush = Date.now();
+    }
+  }
+  if (timer == -1) {
+    // this timer will block while blocking code is running
+    // it will only be rescheduled once and will make sure
+    // that stuff is flushed after the code finishes
+    timer = setTimeout(function(){
+      timer = -1;
+      var data = {files:nodeFilesLoaded,hits:hits,sources:nodeSourcesProfiled};
+      require('fs').writeFileSync('profiler_stats.js', JSON.stringify(data), 'utf8');
+      lastFlush = Date.now();
+    }, 20);
   }
 };
 
 // try to integrate
 integrateInPage();
 
-//document.getElementById('run-code-local').onclick();
-};
+// this is: module.exports.runNode ...
+window.heatfiler.runNode = hookIntoNodejs;
+window.heatfiler.nodeFilesLoaded = nodeFilesLoaded;
+
+
+// in the browser, `this` will be window. in node it will be `module.exports`
+// note that this may not be strict mode code, or `this` will be null and *foom*
+})(this);
