@@ -1,7 +1,6 @@
 /**
  * like-to-haves:
  * - requirejs integration
- * - nodejs integration
  * - heatmap thumb for navigation
  * - micro time tracking, alongside of number of executions
  * - magic.
@@ -566,6 +565,20 @@ var generateHeatmap = function(id, heatmap, tree, spans){
   funcs[id] = [];
   var stack = [document.createElement('span')];
   tree.forEach(function(t,i){
+    if (t.subExpressionLogicStart) {
+      var e = document.createElement('span');
+//      e.setAttribute('data-range', t.tokposb+'~'+t.subExpressionLogicStopper.tokposb);
+      stack[stack.length-1].appendChild(e);
+      stack.push(e);
+      spans[t.tokposb] = {e:e, isFunction:false};
+    } else if (t.statementStart) {
+      var e = document.createElement('span');
+//      e.setAttribute('data-range', t.tokposb+'~'+(t.tokposb+1));
+      stack[stack.length-1].appendChild(e);
+      stack.push(e);
+      spans[t.tokposb] = {e:e, isFunction:false};
+    }
+    // function after expression start or things start turning blue
     if (t.isFuncDeclKeyword || t.isFuncExprKeyword) {
       // the entire function goes into one span
       // this will make it easy to single out one
@@ -596,19 +609,6 @@ var generateHeatmap = function(id, heatmap, tree, spans){
       e.onclick = focusOnFunction;
 
       funcs[id].push(t.tokposb);
-    }
-    if (t.subExpressionLogicStart) {
-      var e = document.createElement('span');
-//      e.setAttribute('data-range', t.tokposb+'~'+t.subExpressionLogicStopper.tokposb);
-      stack[stack.length-1].appendChild(e);
-      stack.push(e);
-      spans[t.tokposb] = {e:e, isFunction:false};
-    } else if (t.statementStart) {
-      var e = document.createElement('span');
-//      e.setAttribute('data-range', t.tokposb+'~'+(t.tokposb+1));
-      stack[stack.length-1].appendChild(e);
-      stack.push(e);
-      spans[t.tokposb] = {e:e, isFunction:false};
     }
 
     stack[stack.length-1].appendChild(document.createTextNode(t.value));
@@ -920,6 +920,7 @@ var hookIntoNodejs = function(filesToProfile, customTargetStatsFile){
 
   hash = {};
   trees = {};
+  funcs = {};
 
   // this is the original loader in the node.js source:
   // https://github.com/joyent/node/blob/master/lib/module.js#L470
