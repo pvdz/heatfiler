@@ -618,5 +618,6 @@ var good = [
   ["for (key in y);", "key is not an expression"],
   ["x=y||z", "y||z is one expression to be assigned to x, do not cut at y for the ||"],
   ["a = h.y ? h.y(c[j]) : a = {id:+g};", "probably double embedded assignment"],
-
+  ["(function(){}())", "caused a crash"],
+  ["+function(){}", "caused a crash"],
 ];

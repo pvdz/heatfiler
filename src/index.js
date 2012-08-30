@@ -60,10 +60,11 @@ if (document.getElementById('run-code-local')) document.getElementById('run-code
 
   spans = {0:{}};
   var heatmap = document.getElementById('heatmap');
-//  generateHeatmap(0, heatmap, trees[0], spans[0]);
+  generateHeatmap(0, heatmap, trees[0], spans[0]);
 
   hits = {0:[]};
   hash = {0:{}};
+  funcs = {0:[]};
   prepareHitsHash(trees[0], hits[0], hash[0]);
 
   document.getElementById('output').value = transform(trees[0], 0);
@@ -94,6 +95,7 @@ if (document.getElementById('ping-code-storage')) document.getElementById('ping-
 
   hash = {0:{}};
   hits = {0:[]};
+  funcs = {0:[]};
   prepareHitsHash(trees[0], hits[0], hash[0]);
 
   pingResultsLocalStorage();
@@ -109,6 +111,7 @@ if (document.getElementById('run-code-storage')) document.getElementById('run-co
 
   hash = {0:{}};
   hits = {0:[]};
+  funcs = {0:[]};
   prepareHitsHash(trees[0], hits[0], hash[0]);
 
   document.getElementById('output').value = transform(trees[0], 0);
@@ -193,6 +196,7 @@ if (document.getElementById('start-tests')) document.getElementById('start-tests
 
     hits = {0:[]};
     hash = {0:{}};
+    funcs = {0:[]};
     prepareHitsHash(trees[0], hits[0], hash[0]);
 
     document.getElementById('output').value = transform(trees[0], 0);
@@ -247,6 +251,7 @@ if (document.getElementById('ping-integration')) document.getElementById('ping-i
 
   hits = {};
   hash = {};
+  funcs = {};
   spans = {};
   heatmaps = [];
 
@@ -264,6 +269,7 @@ if (document.getElementById('ping-node')) document.getElementById('ping-node').o
 
   hits = {};
   hash = {};
+  funcs = {};
   spans = {};
   trees = {};
   heatmaps = [];
@@ -334,6 +340,7 @@ var integrateInPage = function(){
     // transform all those who have list[n].type=='profile'
     hits = {};
     hash = {};
+    funcs = {};
 
     var translations = translateAndLoad(list, hits, hash, true);
 
@@ -420,6 +427,7 @@ var filesLoadedToRunLocal = function(toLoad){
 
   hits = {};
   hash = {};
+  funcs = {};
   spans = {};
   heatmaps = [];
 
@@ -432,12 +440,14 @@ var filesLoadedToRunLocal = function(toLoad){
 var filesLoadedToRunStorage = function(toLoad){
   hits = {};
   hash = {};
+  funcs = {};
 
   translateAndLoad(toLoad, hits, hash);
 };
 var filesLoadedToPingStorage = function(toLoad){
   hits = {};
   hash = {};
+  funcs = {};
   spans = {};
   heatmaps = [];
 
@@ -863,6 +873,7 @@ var pingResults = function(){
           // no var!
           maxFuncCount = Math.max.apply(null, arr.filter(function(o){ return arrFTP.indexOf(o.tokpos) >= 0; }).map(function(o){ return o.hits; }));
         }
+        console.log(arr, pageSpans, spans)
         arr.forEach(function(o){
           var e = pageSpans[o.tokpos];
           if (e.isFunction) {
