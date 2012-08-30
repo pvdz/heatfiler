@@ -596,7 +596,8 @@ var generateHeatmap = function(id, heatmap, tree, spans){
       e.onclick = focusOnFunction;
 
       funcs[id].push(t.tokposb);
-    } else if (t.subExpressionLogicStart) {
+    }
+    if (t.subExpressionLogicStart) {
       var e = document.createElement('span');
 //      e.setAttribute('data-range', t.tokposb+'~'+t.subExpressionLogicStopper.tokposb);
       stack[stack.length-1].appendChild(e);
@@ -873,7 +874,7 @@ var pingResults = function(){
           // no var!
           maxFuncCount = Math.max.apply(null, arr.filter(function(o){ return arrFTP.indexOf(o.tokpos) >= 0; }).map(function(o){ return o.hits; }));
         }
-        console.log(arr, pageSpans, spans)
+
         arr.forEach(function(o){
           var e = pageSpans[o.tokpos];
           if (e.isFunction) {
