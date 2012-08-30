@@ -23,6 +23,10 @@ The rewriting occurs with a set of rules that are "safe" and should not change t
 
 The code coverage does almost exactly the same thing as the profiler, except, of course, that it only highlights in red those parts which were never executed.
 
+## Build
+
+Note that the build directory contains a built file. This file (up to date) already includes zeparser and is a single .js resource to include in your projects, or nodejs. It's not minified, but I don't think that will matter anything since this is a debugging tool.
+
 ## Different methods
 
 The `src/index.html` is the main entry point of the tool. It's a "simple" UI with a bunch of buttons, toggles and inputs. Here's what's what the buttons do:
