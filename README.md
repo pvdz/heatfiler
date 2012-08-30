@@ -34,12 +34,17 @@ The `src/index.html` is the main entry point of the tool. It's a "simple" UI wit
 - (E) Run files locally: Take list of files from the right textarea. Fetch them through (regular!) xhr. Files without a `-` before it are NOT included in the profiling, but are still loaded. Any other file is loaded and transformed and shown in the heatmap. All files are executed. Note that this will show buttons for each file.
 - (F) Run files to local storage: Same as "Run files locally" button, except that it won't display a heatmap and will send the stats to `localStorage`.
 - (G) Ping files from local storage: Same as "Run files locally" button, except that it won't execute the code. It will ping `localStorage` once a second for stats and reflect them in the heatmap. See notes below.
+- (F) Node integration: Include heatfiler in the initial part of your project. Hooks into `require` and stores stats in a file so you can xhr to them for the heatmap.
 
-So you have three choices; Either you run the code on the same page as the heatmap. This is fine, but a bit of a problem for blocking code.
+So you have four choices;
+
+Either you run the code on the same page as the heatmap. This is fine, but a bit of a problem for blocking code.
 
 You can also run the code in one tab and listen to `localStorage` updates from another tab. Note that in that this case, the textareas must contain exactly the same. Especially for the code inputs, this is very important.
 
 Alternatively you can integrate Heatfiler into a project as a script tag. In that case you can listen to it on another tab, similar to the other methods, except that your listener tab will also fetch the source codes through `localStorage`. This was required because it's not very user friendly to have to list all the files or sources after integration :p
+
+Lastly, you can include heatfiler in any node project. It will store the stats in a file and the client can ping this file to show you the stats like above. The file will also contain the file names (listed in the UI) and the sources.
 
 ## Settings
 
@@ -48,6 +53,7 @@ All settings are toggle-able live and will take effect immediately.
 - Use max from any file / Uxe max from individual file: When computing relative stats, should a max be computed from all the files that are profiled or on a per file basis?
 - Code coverage / Profiling: Switch between shoing the frequency of execution and showing the code that was not executed at all.
 - Hide inputs: simply hides the textareas.
+- Location of node stats file: relative to current url, should be xhr-able. Note that you can specify where heatfiler should write the stats to, which is probably more convenient for you.
 
 ## Function list
 
@@ -113,12 +119,28 @@ First open [Dragon fractal thingy](http://heatfiler.qfox.nl/dragon.php) or [para
 
 Then open [heatfiler](http://heatfiler.qfox.nl/) in another tab and click `Ping integration`. Enjoy the magic :)
 
+## Nodejs
+
+You can include heatfiler in pretty much any project by simply `require`ing it and running an exposed method. This will hook heatfiler into the `require` system and intercept file loads. This allows heatfiler to modify the script, like it would in the browser, to be able to do its magic. It then compiles it as node would otherwise do too. In other words, the regular process of node is not changed so unless you do magic stuff with `require.extensions` that clashes with what heatfiler needs to do, this should work for any projects.
+
+An example of usage is: `require('<heatfiler.js>').heatfiler.runNode(['<complete url of file to profile>', ...], '<path to export stats to>');`
+
+You should export the file to a location that's exposed by a webserver. Then after you start running the project in node, open heatfiler in a tab and change the location right of the "Ping node" button to point towards that file.
+
+To make the file whitelist process easier for you heatfiler will update the list of all files that were `require`d as it gets updates. It will ping the stats file once every two seconds (same rate as node will save them). The files textarea will contain the list of files and from there you can easily copy/paste them into the require call above.
+
+Node will also transfer the sources that were fetched through require, so no need to enter files or sources manually in the browser. Heatfiler also handles the progressive `require`s that can happen. So you don't have to make sure everything is `require`d in one go.
+
+Note that in my tests, node did run considerably slower than it usually would. But this maybe due to my older node version (and so older v8 engine). Other than that, things looked fine.
+
+Note: this is using the undocumented `module._compile` (but it does so exactly the same as node would). I was ensured this is the only way of doing it and the only alternative would be that you would be required to manually store translated source into your project. This was unacceptable for me so I decided this was worth the cause. It turns out to be the only way to be the middel man between a fetch for `require` and the evaluation. But it works quite well. I was also told this will remain to be supported on the `1.x` branch. So if node hits v2, beware.
+
 ## Blog post
 
-For (even) more information, check the blog post, which I will post soon :p
+For (even) more information, check [the blog post](http://qfox.nl/weblog/268).
 
 ## Have fun
 
 Hope you liked it :)
 
-Taking (reasonable) pull requests, will fix important bugs, not sure if, and if so when, I'll continue to work on this project.
+Taking (reasonable) pull requests, will fix important bugs. Not sure if, and if so when, I'll continue to work on this project.
