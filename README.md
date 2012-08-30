@@ -137,7 +137,8 @@ Note: this is using the undocumented `module._compile` (but it does so exactly t
 
 ## Blog post
 
-For (even) more information, check [the blog post](http://qfox.nl/weblog/268).
+
+For (even) more information, check [the blog post](http://qfox.nl/weblog/268) :p
 
 ## Have fun
 
