@@ -947,16 +947,17 @@ var hookIntoNodejs = function(filesToProfile, customTargetStatsFile){
 
   require.extensions['.js'] = function(module, filename) {
     var content = fs.readFileSync(filename, 'utf8');
+    var fileid = nodeFileCounter++;
 
     // only transform to profiler code if in array
     if (filesToProfile.indexOf(filename) >= 0) {
 
       nodeSourcesProfiled.push(content);
 
-      var tree = trees[nodeFileCounter] = parse(content);
-      content = transform(tree, nodeFileCounter);
+      var tree = trees[fileid] = parse(content);
+      content = transform(tree, fileid);
 
-      prepareHitsHash(tree, hits[nodeFileCounter]=[], hash[nodeFileCounter]={});
+      prepareHitsHash(tree, hits[fileid]=[], hash[fileid]={});
 
       // inject a heatfiler variable into each source. this will hold all the methods we need...
       content =
@@ -975,8 +976,6 @@ var hookIntoNodejs = function(filesToProfile, customTargetStatsFile){
 
     // this doohicky does the magic of turning source into js
     module._compile(stripBOM(content), filename);
-
-    ++nodeFileCounter;
   };
 
   // from now on, any required file that is require'd and also
@@ -987,15 +986,30 @@ var hookIntoNodejs = function(filesToProfile, customTargetStatsFile){
 
   nodeMode = true;
 
+  /**
+   * Record an expression part
+   *
+   * @param {number} id File id
+   * @param {number} a Start pos
+   * @param {number} b End pos
+   */
   window.BAR = function(id,a,b){
     // statement or expression-part
     ++hash[id][a].hits;
     toFile();
+    // for browser mode, this function uses toLocalStorage
   };
+  /**
+   * Record a function call
+   *
+   * @param {number} id File id
+   * @param {number} a Pos
+   */
   window.FOO = function(id,a){
     // a function call
     ++hash[id][a].hits;
     toFile();
+    // for browser mode, this function uses toLocalStorage
   };
 };
 
@@ -1004,17 +1018,30 @@ var hookIntoNodejs = function(filesToProfile, customTargetStatsFile){
 var lastFlush = Date.now();
 var dateNowThrottle = 0;
 var timer = -1;
+/**
+ * Record an expression part
+ *
+ * @param {number} id File id
+ * @param {number} a Start pos
+ * @param {number} b End pos
+ */
 window.BAR = function(id,a,b){
   // statement or expression-part
   ++hash[id][a].hits;
   if (sendToLocalStorage) toLocalStorage();
-  // for nodeMode, the BAR function is replaced with a more efficient one
+  // for nodeMode, this function uses toFile
 };
+/**
+ * Record a function call
+ *
+ * @param {number} id File id
+ * @param {number} a Pos
+ */
 window.FOO = function(id,a){
   // a function call
   ++hash[id][a].hits;
   if (sendToLocalStorage) toLocalStorage();
-  // for nodeMode, the FOO function is replaced with a more efficient one
+  // for nodeMode, this function uses toFile
 };
 var toLocalStorage = function(){
   if (!(++dateNowThrottle < 1000000)) {
