@@ -9,7 +9,7 @@
 
 window.heatfiler = {};
 
-var currentPage = -1; // like tabs for files, what's the currently shown tab?
+var currentPage = -1; // like tabs for files, what's the currently shown tab? relative to actually shown files (tabs)
 var sendToLocalStorage = false; // should pings be sent to localStorage too? makes it much much slower, but hey
 var statsRelativeToPage = true; // compare to max of all files or max of each file individually?
 var relativeToFunction = -1; // when zooming in on a function, this is the tokpos
@@ -259,7 +259,7 @@ if (document.getElementById('ping-integration')) document.getElementById('ping-i
   pingResultsLocalStorage();
 };
 
-if (document.getElementById('ping-node')) document.getElementById('ping-node').onclick = function(){
+if (document.getElementById('ping-node')) document.getElementById('ping-node').onclick = function restore(){
   // in this case, we ping the server for the stats, rather than local storage
   // on top of that, we also add the loaded files to the files textarea
 
@@ -275,6 +275,13 @@ if (document.getElementById('ping-node')) document.getElementById('ping-node').o
 
   // start pinging the server for stats
   pingResultsNode(20);
+
+  document.getElementById('ping-node').innerHTML = 'Stop ping';
+  document.getElementById('ping-node').onclick = function(){
+    clearTimeout(lastTimer);
+    document.getElementById('ping-node').onclick = restore;
+    document.getElementById('ping-node').innerHTML = 'Ping node';
+  };
 };
 
 if (document.getElementById('toggle-inputs')) document.getElementById('toggle-inputs').onclick = function(){
@@ -383,22 +390,20 @@ var parseFilesField = function(){
 
   var toLoad = [];
 
-  currentPage = -1;
+  var tabs = 0;
   files.forEach(function(file, i){
     file = file.replace(/^\s*/,'').replace(/\s*$/,'');
     if (file) {
       var exclude = file[0] === '-';
-      if (file) {
-        file = file.replace(/^[-+\s]?\s*/,'');
-        var obj = {url:file, profile:!exclude};
-        toLoad.push(obj);
+      file = file.replace(/^[-+\s]?\s*/,'');
+      var obj = {url:file, profile:!exclude};
+      toLoad.push(obj);
 
-        if (!exclude && currentPage == -1) {
-          currentPage = i;
-        }
-      }
+      if (!exclude) ++tabs;
     }
   });
+  if (tabs === 0) currentPage = -1;
+  else if (currentPage < 0 || currentPage >= tabs) currentPage = 0;
 
   return toLoad;
 };
@@ -513,18 +518,20 @@ var showFileButtons = function(heatmaps, files){
   while (parent.children.length > 1) parent.removeChild(parent.children[1]);
 
   // add a show button for each file
-  // remove undefineds first
-  heatmaps = heatmaps.filter(function(o){ return o; });
+  var n = 0;
   heatmaps.forEach(function(e,i){
-    var button = document.createElement('button');
-    button.innerHTML = 'file '+(i+1);
-    button.style.cssFloat = 'left';
-    button.title = files[i];
-    button.onclick = function(){
-      document.body.replaceChild(e, document.getElementById('heatmap'));
-      currentPage = i;
-    };
-    parent.appendChild(button);
+    if (e) {
+      var button = document.createElement('button');
+      button.innerHTML = 'file '+(++n);
+      button.style.cssFloat = 'left';
+      button.title = files[i];
+      button.onclick = function(){
+        document.body.replaceChild(e, document.getElementById('heatmap'));
+        currentPage = i;
+        pingResults();
+      };
+      parent.appendChild(button);
+    }
   });
 };
 var translateAndLoad = function(toLoad, hits, hash, forIntegration){
@@ -754,7 +761,7 @@ var pingResultsLocalStorage = function repeat(n){
   }, n);
 };
 var pingResultsNode = function repeat(n){
-  setTimeout(function(){
+  lastTimer=setTimeout(function(){
     // get data from localStorage
     GET(document.getElementById('stats-file-location').value, function(err, data){
       if (err) return console.log("Some error while fetching stats", err);
