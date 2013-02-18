@@ -1042,7 +1042,7 @@ var toFile = function(){
     dateNowThrottle = 0;
     if (Date.now() - lastFlush > 2000) {
       var data = {files:nodeFilesLoaded,hits:hits,sources:nodeSourcesProfiled};
-      require('fs').writeFileSync('profiler_stats.js', JSON.stringify(data), 'utf8');
+      require('fs').writeFileSync(targetStatsFile, JSON.stringify(data), 'utf8');
       lastFlush = Date.now();
     }
   }
@@ -1053,7 +1053,7 @@ var toFile = function(){
     timer = setTimeout(function(){
       timer = -1;
       var data = {files:nodeFilesLoaded,hits:hits,sources:nodeSourcesProfiled};
-      require('fs').writeFileSync('profiler_stats.js', JSON.stringify(data), 'utf8');
+      require('fs').writeFileSync(targetStatsFile, JSON.stringify(data), 'utf8');
       lastFlush = Date.now();
     }, 20);
   }
