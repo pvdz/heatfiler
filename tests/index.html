@@ -1,19 +1,40 @@
 <!doctype html>
 <html>
-<head>
-  <style>
-  </style>
-</head>
-<body>
-<button id="start-tests">start</button>
-
-<textarea id="input" style="width: 400px; height:500px;" placeholder="tests are put in here" disabled></textarea>
-<textarea id="output" style="width: 400px; height:500px;" placeholder="translated code will appear here" disabled></textarea>
-<pre id="heatmap" style="width:400px; height:500px; padding: 3px; float:left; margin: 0 4px 0 0;"></pre>
-
-<script src="tests.js"></script>
-<script src="../lib/zeparser/Tokenizer.js"></script>
-<script src="../lib/zeparser/ZeParser.js"></script>
-<script src="../src/core.js"></script>
-</body>
+  <head>
+    <style>
+    </style>
+  </head>
+  <body>
+    <script src="tests.js"></script>
+    <script src="../lib/uni.js"></script>
+    <script src="../lib/tok.js"></script>
+    <script src="../lib/par.js"></script>
+    <script src="../src/transformer.js"></script>
+    <script>
+      console.log('ZeParser2 tests:\n');
+      console.log('\n');
+      good.forEach(function(arr){
+        var str = arr[0];
+        console.log('Input: ', str);
+        var out = transformer.process(0, str);
+        console.log('Output:', out);
+        Par.parse(out, {saveTokens:true});
+        console.log('\n');
+      });
+      console.log('\n');
+      console.log('\n');
+      console.log('\n');
+      console.log('\n');
+      console.log('HeatFiler tests:\n');
+      console.log('\n');
+      heatTests.forEach(function(arr, i){
+        var str = arr[0];
+        console.log('Input: ', str);
+        var out = transformer.process(0, str);
+        console.log('Output:', out);
+        Par.parse(out, {saveTokens:true});
+        console.log('\n');
+      });
+    </script>
+  </body>
 </html>

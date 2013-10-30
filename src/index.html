@@ -2,85 +2,197 @@
 <html>
   <head>
     <style>
-      #heatmap span { cursor: help; }
-      #function-overview {
-        position: absolute;
-        top: 10px;
-        left: 50px;
-        background-color: black;
-        color: white;
-        padding: 5px;
-        border-radius: 5px;
-        list-style: none;
-      }
-      #function-overview li:hover { color:red; }
+      .tab, .tab.result.enabled { color: black; float: left; width: 100px; height: 25px; border: 1px solid black; border-left: 0; text-align: center; line-height: 25px; cursor: pointer; }
+      .tab:first-child { border-left: 1px solid black; }
+      .tab:hover, .tab.result.enabled:hover { background-color: orange; }
+      .open.tab, .open.tab.result.enabled { border-bottom: 1px solid lightgreen; background-color: lightgreen; cursor: default; }
+      .tab.result { cursor: default; background-color: white; color: #ccc; }
+      .content { clear: left; }
+      .page { display: none; min-height: 600px; width: 600px; }
+      .paig { display: none; min-height: 600px; }
+      .open.page, .open.paig { display: block; }
+      .content textarea { width: 600px; height: 300px; }
+      .output { display: none; }
+      .output.visible { display: inline; }
+      .loading, .warning { display: none; }
+      .result.paig .files { position: fixed; top: 0; right: 360px; padding: 0; display: none; }
+      .result.paig .files li { clear: left; float: left; margin: 2px; padding: 2px; border: 1px solid black; border-top-color: #ccc; border-left-color: #ccc; list-style: none; cursor: pointer; border-radius: 2px; }
+      .result.paig .files li.opened { background-color: lightgreen; }
+      .result.paig .files li:hover { color: red; }
+      .result.paig .current-file { background-color: #eee; }
 
-      #close-function-list {
-        cursor: pointer;
-        border: 1px solid white;
-        border-radius: 5px;
-        padding: 3px;
-        margin-bottom: 5px;
-        text-align: center;
-      }
-      #close-function-list:hover { border-color: red; }
+      .loading.visible, .warning.visible, .result.paig .files.visible { display: block; }
 
-      textarea { margin-right: 5px; }
+      /* 17px line-height is assumed in js */
+      #line-numbers { float: left; line-height: 17px; display: none; margin: 0; padding-top: 3px; padding-right: 3px; border-right: 1px solid #ccc; color: #ccc; }
+      #line-numbers.visible { display: block; }
+      #heatmap { padding: 3px; background-color: white; color: #ccc; line-height: 17px; width: 80%; width: -moz-calc(100% - 240px);  width: -webkit-calc(100% - 240px);  width: calc(100% - 240px); overflow: auto; }
+      .heat { color: black; border: 1px solid transparent; line-height: 17px; cursor: help; }
+      .heat:hover { border-color: black; }
+
+      #thumb { position:fixed; top:0; right:0; overflow: hidden; pointer-events:none; line-height: 17px; }
+      #thumb-handler { position: fixed; top: 0; right: 0; }
+      #thumb-viewport { background-color: rgba(0,0,0,0.2); position:fixed; top:0; right:0; pointer-events: none; }
+
+      #tools { position: fixed; top: 0; right: 205px; }
+      #tools li { list-style: none; text-align: center; opacity: 0.5; cursor: default; }
+      #tools li.on { background-color: green; }
+      #tools li.off { background-color: red; }
+      #tools li.tool { background-color: #ccc; }
+      #tools li:hover { opacity: 1; }
+      #tools li.on:hover, #tools li.off:hover { color: white; }
+      #tools li input { float: left; }
+      #tools li label { display: block; }
+
+      #busy { display: none; }
+
+      #popup { background-color:white; position: fixed; top:20px; left:50%; border: 1px solid black; padding: 5px; padding-bottom: 10px; max-height: 80%; overflow: auto; }
+      #popup .count { float:left; width:50px; text-align:right; }
+      #popup .link { cursor: pointer; text-decoration: underline; }
+      #popup .link:hover { color: red; }
+      #popup li:hover { color: red; cursor: pointer; }
+      #popup .close { text-align: center; margin-top: 15px; }
+      #popup .close span { margin: 2px; padding: 2px; border: 1px solid black; border-top-color: #ccc; border-left-color: #ccc; list-style: none; cursor: pointer; border-radius: 2px; }
+      #popup .close:hover { color: red; }
     </style>
   </head>
   <body>
-    <div>This is a JS heatmap profiler slash code coverage tool. Open sourced on <a href="http://github.com/qfox/Heatfiler/">github</a>. See <a href="http://qfox.nl/weblog/268">blog post</a>. For help on usage, read <a href="https://github.com/qfox/Heatfiler/blob/master/README.md">the docs</a>. The console is your friend (errors...) ;)</div>
-    <div style="border-bottom: 1px solid black; padding-bottom: 3px; margin-bottom: 2px;">By Peter van der Zee, &copy; 2012, <a href="http://qfox.nl/">qfox.nl</a></div>
-    <div style="overflow:auto; float:right;">
-      <button id="ping-code-storage" style="float:right;">Ping code from local storage</button>
-      <button id="run-code-storage" style="float:right;">Run code to local storage</button>
-      <button id="run-code-local" style="float:right;">Run code localy</button>
-
-      <button id="ping-integration" style="float:right; margin-right: 20px;">Ping integration</button>
-
-      <button id="ping-files-storage" style="clear:right; float:right;">Ping files from local storage</button>
-      <button id="run-files-storage" style="float:right;">Run files to local storage</button>
-      <button id="run-files-local" style="float:right;">Run files localy</button>
-
-      <input id="stats-file-location" style="float:right; clear:right;" value="./profiler_stats.js"/>
-      <button id="ping-node" style="float:right; margin-right: 20px;">Ping node</button>
-
-      <label style="margin-right: 50px; float:right;"><nobr><input type="checkbox" id="toggle-inputs"/>Hide inputs</nobr></label>
+    <div class="tabs">
+      <div class="open tab home">Home</div>
+      <div class="tab run">Run code</div>
+      <div class="tab listen">Listen</div>
+      <div class="tab empty">Empty</div>
+      <div class="tab nodejs">NodeJS</div>
+      <div class="tab result">Result</div>
     </div>
+    <div class="content">
+      <div class="open home page">
+        <h1>Heatfiler</h1>
+        <p>This is a JS heatmap profiler slash code coverage tool. Open sourced on <a href="http://github.com/qfox/Heatfiler/">github</a>. See <a href="http://qfox.nl/weblog/268">blog post</a>. For help on usage, read <a href="https://github.com/qfox/Heatfiler/blob/master/README.md">the docs</a>. The console is your friend (errors...) ;)</p>
+        <p>By Peter van der Zee, &copy; 2012, <a href="http://qfox.nl/">qfox.nl</a></p>
+      </div>
+      <div class="run page">
+        <h1>Run code</h1>
+        <p>Start running your code here. There are a few ways of running your code.</p>
+        <ul>
+          <li>You can either paste the JS your want to run</li>
+          <li>Or, you can enter the files to process one-by-one</li>
+        </ul>
+        <p>You can either immediately show the output or put the stats in <code>localStorage</code>.</p>
+        <p>For the files, make sure you enter each file on its own line. You can prefix it with a <code>+</code> or <code>-</code> to indicate whether you want to profile (<code>+</code>) the file or not (<code>-</code>).</p>
+        <p>If you decide to send the profiling stats to local storage, you will need to open this page in another tab (in the same browser) and select the "Listen" section.</p>
 
-    <div style="overflow:auto;">
-      <label style="float:left;"><input type="radio" id="set-absolute-max" name="setting-relative" value="absolute"> Use max from any file</label>
-      <label style="float:left;"><input type="radio" id="set-relative-max" name="setting-relative" value="relative" checked> Use max from individual file</label>
+        <p>My input will be</p>
+          <input id="run-code" type="radio" name="inputtype" value="code" checked/> <b>code</b> <i>(enter regular JS below)</i><br/>
+          <input id="run-files" type="radio" name="inputtype" value="files"/> <b>files</b> <i>(enter full or relative "ajaxable" paths below)</i><br/>
+        <p>And I want to run it</p>
+          <input id="run-here" type="radio" name="target" value="code" checked/> <b>locally</b> <i>(heatmap in this browser tab)</i><br/>
+          <input id="run-tab" type="radio" name="target" value="files"/> to <b>localStorage</b> <i>(heatmap in another browser tab)</i><br/>
+        <p><button class="start">Start</button></p>
 
-      <label style="clear: left; float:left;"><input type="radio" id="enable-code-coverage" name="setting-code-coverage" value="enabled"> Code coverage</label>
-      <label style="float:left;"><input type="radio" id="disable-code-coverage" name="setting-code-coverage" value="disabled" checked> Profiling</label>
+        <!-- the spaces should force the browsers to wrap the line since html5 apparently explicitly does not allow newlines in a placeholder( WWHHHYYYYYYY?? :'( !!! the fuck do they care) -->
+        <textarea class="input" placeholder="enter code or files here"></textarea>
+        <p><button class="start">Start</button></p>
 
-      <div id="file-tabs">
-        <button id="open-function-list" style="clear:left; float: left; display:none;">function list</button>
+        <div class="output">
+          <p>Translated output:</p>
+          <textarea></textarea>
+        </div>
+      </div>
+      <div class="listen page">
+        <h1>Listen</h1>
+        <p>Start listening to stats sent to <code>localStorage</code>. There are basically two ways of doing this.</p>
+        <ul>
+          <li>From the "run code" tab of this page (from another tab), selecting "to localStorage"</li>
+          <li>Integration of HeatFiler in an existing project (see below)</li>
+        </ul>
+        <p>Both methods will output the results to <code>localStorage</code> (in the same way). Press the "listen" button to start showing the heatmap.</p>
+        <p>To integrate HeatFiler first include the profiler in your project. Make all script tags in that project have a <code>type="profile"</code> or <code>type="no-profile"</code>. Only the <code>profile</code> tags will be profiled, obviously. But other tags need to get a special <code>type</code> as well as to preserve execution order. Once this is done, load the project page and start listening in this tab.</p>
+        <button class="start">Start listening</button>
+
+        <div class="output">
+          <p>Translated output:</p>
+          <textarea></textarea>
+        </div>
+      </div>
+      <div class="empty page">
+        <h1>&#x03B5;</h1>
+        I have been left empty. On purpose. Honestly!
+      </div>
+      <div class="nodejs page">
+        <h1>NodeJS</h1>
+        <p>You can require HeatFiler in any existing nodejs project. Just tell it which files to profile and it will show the results here.</p>
+        <p>By default files are <b>not</b> profiled. When you run the whole nodejs integration thing, you will get a list of files that have been seen below.</p>
+        <p>The outputted file (configurable) must of course be accessible through XHR from this page. Other than that it works similar to the <code>localStorage</code> method.</p>
+        <p>Enter the configured location of the output file, either absolute or relative to this page. If cross domain, make sure it's accessible through XHR (setup CORS). In most browsers you'll need to run this through a webserver in this mode, regardless (due to XHR).</p>
+        <button class="start">ping output file</button>
+        <input class="input" placeholder="../stats.js"/>
+
+        <div class="loading">
+          <span class="spinner"></span> <span class="status">Fetching</span> <code>&lt;<a class="filename" target="_blank"></a>&gt;</code> ...
+        </div>
+
+        <div class="warning">
+          <div>
+            <b>Warning:</b><br/>
+            Detected no files to profile. Either try again in a few seconds or use the file list below to select the files you want
+            to profile. To start profiling scripts, in your current setup, the call could be something like:
+          </div>
+          <pre>
+require('<span id="example-heatfiler-location"></span>').bootstrap('<span id="example-output-file"></span>', [
+  <span id="example-profiles"></span>
+]);
+          </pre>
+        </div>
+
+        <div class="output">
+          <p>All files encountered in project (so far):</p>
+          <textarea class="files"></textarea>
+
+          <p>Translated output (of profiled files):</p>
+          <textarea class="translated"></textarea>
+        </div>
+      </div>
+      <div class="result paig">
+        <h1>Profiler heatmap</h1>
+        <p id="busy">
+          If this spinner
+          <span class="spinner"></span>
+          is not spinning, the browser is very busy running your code.
+        </p>
+        <ul class="files"></ul>
+        <p>Current file: <b class="current-file"></b></p>
+        <ul id="tools">
+          <li id="mode-relative" class="on"><label><input type="checkbox"/> File relative stats</label></li>
+          <li id="mode-pause" class="off"><label><input type="checkbox"/> Pause updating</label></li>
+          <li id="mode-coverage" class="off"><label><input type="checkbox"/> Code coverage</label></li>
+          <li id="mode-lines" class="on"><label><input type="checkbox"/> Line numbers</label></li>
+          <li id="most-funcs" class="tool">Most called funcs</li>
+          <li id="most-stmts" class="tool">Most called statements</li>
+          <li id="jit-info" class="tool">JIT info</li>
+        </ul>
+        <pre id="line-numbers" class="invisible"></pre>
+        <pre id="heatmap">Loading heatmap...</pre>
       </div>
     </div>
 
+    <script src="helper.js"></script>
+    <script>
+      qsa('.spinner').forEach(function(e){
+        // replace them because <img src=""> might do bad things
+        // we replace it to prevent duplicate occurrences of the image string
+        var img = new Image;
+        img.src="data:image/gif;base64,R0lGODlhEAAQAPIAAP///wAAAMLCwkJCQgAAAGJiYoKCgpKSkiH+GkNyZWF0ZWQgd2l0aCBhamF4bG9hZC5pbmZvACH5BAAKAAAAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAEAAQAAADMwi63P4wyklrE2MIOggZnAdOmGYJRbExwroUmcG2LmDEwnHQLVsYOd2mBzkYDAdKa+dIAAAh+QQACgABACwAAAAAEAAQAAADNAi63P5OjCEgG4QMu7DmikRxQlFUYDEZIGBMRVsaqHwctXXf7WEYB4Ag1xjihkMZsiUkKhIAIfkEAAoAAgAsAAAAABAAEAAAAzYIujIjK8pByJDMlFYvBoVjHA70GU7xSUJhmKtwHPAKzLO9HMaoKwJZ7Rf8AYPDDzKpZBqfvwQAIfkEAAoAAwAsAAAAABAAEAAAAzMIumIlK8oyhpHsnFZfhYumCYUhDAQxRIdhHBGqRoKw0R8DYlJd8z0fMDgsGo/IpHI5TAAAIfkEAAoABAAsAAAAABAAEAAAAzIIunInK0rnZBTwGPNMgQwmdsNgXGJUlIWEuR5oWUIpz8pAEAMe6TwfwyYsGo/IpFKSAAAh+QQACgAFACwAAAAAEAAQAAADMwi6IMKQORfjdOe82p4wGccc4CEuQradylesojEMBgsUc2G7sDX3lQGBMLAJibufbSlKAAAh+QQACgAGACwAAAAAEAAQAAADMgi63P7wCRHZnFVdmgHu2nFwlWCI3WGc3TSWhUFGxTAUkGCbtgENBMJAEJsxgMLWzpEAACH5BAAKAAcALAAAAAAQABAAAAMyCLrc/jDKSatlQtScKdceCAjDII7HcQ4EMTCpyrCuUBjCYRgHVtqlAiB1YhiCnlsRkAAAOwAAAAAAAAAAAA==";
+        e.parentNode.replaceChild(img, e);
+      });
+    </script>
 
-    <textarea id="files" style="clear:right;width: 300px; height:500px; float:right;" placeholder="files (one per line, prefix with +/- to include or exclude a file from profiling), url included as is through regular xhr"></textarea>
-    <textarea id="output" style="width: 400px; height:500px; float:right;" placeholder="translated code will appear here for your pleasure"></textarea>
-    <textarea id="input" style="width: 400px; height:500px; float:right;" placeholder="input the js to profile here">
-for (var i=0; i<20; ++i) foo(i,i*10);
-function foo(a,b){
-  return a>5 && a+b || a-b;
-}
-foo(23,55);
+    <script src="../lib/uni.js"></script>
+    <script src="../lib/tok.js"></script>
+    <script src="../lib/par.js"></script>
 
-for (var i=0; i<50; ++i) bar(i,i*10);
-function bar(a,b){
-  return a>5 && a+b || a-b;
-}
-bar(23,55);
-</textarea>
-    <pre id="heatmap" style="width:400px; height:500px; padding: 3px; margin: 0 4px 0 0;"></pre>
-
-    <script src="../lib/zeparser/Tokenizer.js"></script>
-    <script src="../lib/zeparser/ZeParser.js"></script>
-    <br/>
-    <script src="core.js"></script>
+    <script src="transformer.js"></script>
+    <script src="heatfiler.js"></script>
+    <script src="ui.js"></script>
   </body>
 </html>

@@ -1,3 +1,49 @@
+// specific targeted tests
+
+var heatTests = [
+  ["x"],
+  ["function x(){}", "$A();", "function x(){$A();$D();}"],
+  ["function x(){ return; }"],
+  ["function x(){ return }"],
+  ["function x(){ return x }"],
+  ["function x(a,b,c){}", "$A(); function x(a,b,c){$C(a);$C(b);$C(c);$A();$D();}"],
+  ["function x(){ return x; return y; }", "$A(); function x(){ A(); return $B(x); A(); return $B(y); $D(); }"],
+  ["foo;", "$A(); $B(foo);"],
+  ["foo + bar;", "$A(); $B(foo + bar);"],
+  ["foo && bar;", "$A(); $B(foo) && $B(bar)"],
+  ["x=y", "(x=(y))"],
+  ["x=y=z", '%(x=%(y=%(z)))', 'x=y=%(z)', 'Mx=My=%(z)'],
+  ["call(x=y=z);"],
+  ["x=y||z", '%(x=%(y)||%(z))', 'Mx=#(%(y)||%(z))'],
+  ["x=a?b:c"],
+  ["function A(){ return x; }"],
+  ["a + function(){ d && e; } + c"],
+  ["a = function(){ d = e; } && c"],
+  ["function B(){ return a,y; }"],
+  ["x=y,b=z"],
+  ["x=y,b=z||d"],
+  ["x[function(){a=b}]=y"],
+
+  ["x && y"],
+  ["x || y && z"],
+  ["x ? y : z ? a : b"],
+
+  ["var foo;"],
+  ["var foo = bar"],
+  ["var foo = a || b"],
+  ["{}"], // TOFIX: returns? also, eliminate extra brackets
+  ["if(x);"],
+  ["test()"],
+  ["if(x)y;"],
+  ["for(a;b;c);"],
+  ["for(;;);"],
+  ["for(;;){}"],
+  ["{ $statement$(0, 0); var abc; }"],
+
+
+  // for-in cases
+];
+
 // Test suite from ZeParser2
 // Only the positive tests because the negative tests don't matter for this
 
@@ -82,8 +128,6 @@ var good = [
   ["\n", 1, "LF Line Ending = 1 Linefeed"],
   ["\r\n\n\u2028\u2029\r", 5, "Various Line Terminators"],
 
-// Whitespace.
-  ["throw \t\u000b\u000c\u00a0\uffffb", [8, 9], "Whitespace"],
 // Additional tests for whitespace...
 
 // http://code.google.com/p/es-lab/source/browse/trunk/tests/parser/parsertests.js?r=86 and 430.
@@ -107,9 +151,9 @@ var good = [
   ["x+5;", 4, "Identifier, Binary `+` Operator, Identifier, `;`"],
   ["xyz123;", 2, "Alphanumeric Identifier, `;`"],
   ["x1y1z1;", 2, "Alternating Alphanumeric Identifier, `;`"],
-  ["foo\\u00d8bar;", 2, "Identifier With Unicode Escape Sequence middle (`\\uXXXX`), `;`"],
-  ["\\u00d8bar;", 2, "Identifier With Unicode Escape Sequence begin (`\\uXXXX`), `;`"],
-  ["foo\\u00d8;", 2, "Identifier With Unicode Escape Sequence end (`\\uXXXX`), `;`"],
+  ["foo\\u00d8bar;", 2, "Identifier With Unicode Escape Sequence middle (`\\uDDDD`), `;`"],
+  ["\\u00d8bar;", 2, "Identifier With Unicode Escape Sequence begin (`\\uDDDD`), `;`"],
+  ["foo\\u00d8;", 2, "Identifier With Unicode Escape Sequence end (`\\uDDDD`), `;`"],
   ["f\u00d8\u00d8bar;", 2, "Identifier With Embedded Unicode Character"],
 
 // Numbers.
@@ -401,7 +445,6 @@ var good = [
   ["while(true)continue \n foo;", [10, 11], "Restricted Production: `continue` Statement"],
   ["while(true)break \n foo;", [10, 11], "Restricted Production: `break` Statement"],
   ["function f(){return\nfoo;}", [11, 12], "Restricted Production: `return` Statement"],
-  ["throw\nfoo;", [4, 5], "Restricted Production: `throw` Statement"],
   ["var x; { 1 \n 2 } 3", [16, 19], "Classic Automatic Semicolon Insertion Case"],
   ["ab \t /* hi */\ncd", [7, 9], "Automatic Semicolon Insertion: Block Comment"],
   ["ab/*\n*/cd", [3, 5], "Automatic Semicolon Insertion Triggered by Multi-Line Block Comment"],

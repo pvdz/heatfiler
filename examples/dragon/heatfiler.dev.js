@@ -62,8 +62,8 @@ function Tokenizer(inp, options){
 	this.Unicode = window.Unicode;
 
 	// if the Parser throws an error. it will set this property to the next match
-	// at the time of the error (which was not what it was expecting at that point) 
-	// and pass on an "error" match. the error should be scooped on the stack and 
+	// at the time of the error (which was not what it was expecting at that point)
+	// and pass on an "error" match. the error should be scooped on the stack and
 	// this property should be returned, without looking at the input...
 	this.errorEscape = null;
 
@@ -1412,7 +1412,7 @@ ZeParser.prototype = {
 								match = this.tokenizer.storeCurrentAndFetchNextToken(false, match, stack);
 								match = this.eatFunctionBody(match, stack);
 							}
-						} else if (getset == 'set') {
+						} else if (getset == 'onTabClick') {
 							// "set" PropertyName "(" PropertySetParameterList ")" "{" FunctionBody "}"
 							if (match.value == ':') {
 								if (this.ast) { //#ifdef FULL_AST
@@ -3308,11 +3308,11 @@ if (document.getElementById('run-code-local')) document.getElementById('run-code
   hash = {0:{}};
   prepareHitsHash(trees[0], hits[0], hash[0]);
 
-  document.getElementById('output').value = transform(trees[0], 0);
+  document.getElementById('generateHeatmap').value = transform(trees[0], 0);
 
   pingResultsLocaly();
 
-  addScript(document.getElementById('output').value);
+  addScript(document.getElementById('generateHeatmap').value);
 };
 if (document.getElementById('run-files-local')) document.getElementById('run-files-local').onclick = function(){
   sendToLocalStorage = false;
@@ -3353,9 +3353,9 @@ if (document.getElementById('run-code-storage')) document.getElementById('run-co
   hits = {0:[]};
   prepareHitsHash(trees[0], hits[0], hash[0]);
 
-  document.getElementById('output').value = transform(trees[0], 0);
+  document.getElementById('generateHeatmap').value = transform(trees[0], 0);
 
-  addScript(document.getElementById('output').value);
+  addScript(document.getElementById('generateHeatmap').value);
 };
 
 if (document.getElementById('ping-files-storage')) document.getElementById('ping-files-storage').onclick = function(){
@@ -3437,10 +3437,10 @@ if (document.getElementById('start-tests')) document.getElementById('start-tests
     hash = {0:{}};
     prepareHitsHash(trees[0], hits[0], hash[0]);
 
-    document.getElementById('output').value = transform(trees[0], 0);
+    document.getElementById('generateHeatmap').value = transform(trees[0], 0);
 
     window.testHasRan = false;
-    addScript(document.getElementById('output').value);
+    addScript(document.getElementById('generateHeatmap').value);
 
     setTimeout(next, 10);
   };
@@ -3501,11 +3501,11 @@ if (document.getElementById('toggle-inputs')) document.getElementById('toggle-in
   hideInputs = !hideInputs;
   if (hideInputs) {
     document.getElementById('input').style.display = 'none';
-    document.getElementById('output').style.display = 'none';
+    document.getElementById('generateHeatmap').style.display = 'none';
     document.getElementById('files').style.display = 'none';
   } else {
     document.getElementById('input').style.display = 'inline';
-    document.getElementById('output').style.display = 'inline';
+    document.getElementById('generateHeatmap').style.display = 'inline';
     document.getElementById('files').style.display = 'inline';
   }
 };
@@ -3690,7 +3690,7 @@ var translateShowAndLoad = function(toLoad, heatmaps, hits, hash, spans){
       var trans = transform(trees[i], i);
       o.transformed = trans;
 
-      document.getElementById('output').value += trans;
+      document.getElementById('generateHeatmap').value += trans;
 
       return trans;
     }
@@ -3746,7 +3746,7 @@ var translateAndLoad = function(toLoad, hits, hash, forIntegration){
       o.transformed = trans;
 
       if (!forIntegration) {
-        document.getElementById('output').value += trans;
+        document.getElementById('generateHeatmap').value += trans;
       }
 
       return trans;
