@@ -1,3 +1,5 @@
+var IDENTIFIER = 13;
+var WHITE = 18;
 var ui = {
   heatmapLineHeight: 17,
 
@@ -102,6 +104,11 @@ var ui = {
   sanitizeFilename: function(f){
     return f.replace(/^\s*[+-]\s*/, '');
   },
+  prevBlack: function(tree, index){
+    --index;
+    while (index >= 0 && tree[index].type === WHITE) --index;
+    return tree[index];
+  },
   setHeatmap: function(){
     var tree = ui.trees[ui.currentFid];
 
@@ -112,13 +119,23 @@ var ui = {
     hm.onclick = function(e){
       var id = e.target.id;
       if (id.slice(0, ui.funcTokenIdPrefix.length) === ui.funcTokenIdPrefix) {
-        id = id.slice(ui.funcTokenIdPrefix.length);
-        if (ui.focusStart+'' === id) {
+        id = parseInt(id.slice(ui.funcTokenIdPrefix.length), 10);
+
+        // include name of object literal key or var assignment
+        var from = id;
+        var prev = ui.prevBlack(tree, id);
+        if (prev.value === ':' || prev.value === '=') {
+          var pprev = ui.prevBlack(tree, prev.white);
+          if (pprev.type === IDENTIFIER) from = pprev.white;
+        }
+
+        if (ui.focusStart === from) {
           ui.openFile(ui.currentFid, true);
           gebi(ui.funcTokenIdPrefix+id).scrollIntoView();
         } else {
           var ft = ui.trees[ui.currentFid][id];
-          ui.setFocus(ft);
+          var to = ft.rhc.white;
+          ui.setFocus(from, to, id);
         }
       }
     };
@@ -405,17 +422,17 @@ var ui = {
     });
   },
 
-  setFocus: function(ft){
-    if (ft) {
-      var rhc = ft.rhc;
+  setFocus: function(from, to, funcId){
+    if (from !== false) {
       // now focus on ft ~ rhc only...
-      ui.focusStart = ft.white;
-      ui.focusStop = rhc.white+1;
+      ui.focusStart = from;
+      ui.focusStop = to+1;
       ui.setHeatmap();
       ui.updateThumb();
       ui.updateLineNumbers();
       ui.applyStats();
-      gebi(ui.funcTokenIdPrefix+ft.white).scrollIntoView();
+
+      gebi(ui.funcTokenIdPrefix+funcId).scrollIntoView();
     } else {
       ui.focusStart = false;
       ui.focusStop = false;

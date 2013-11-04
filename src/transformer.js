@@ -6,6 +6,8 @@ if (typeof Par === 'undefined') {
 var transformer = (function(Par){
   var ASI = 15;
   var WHITE = 18;
+  var IDENTIFIER = 13;
+  var NUMBER = 7;
   var transformer = {
     nameStatementCount: '$statement$',
     nameExpressionCount: '$expression$',
@@ -97,16 +99,31 @@ var transformer = (function(Par){
       }).join('');
     },
     // pretty much same structure as transform()... (so if that function changes..)
+    nextBlack: function(token, tree){
+      if (!token) return null;
+      var i = token.white+1;
+      while (tree[i] && tree[i].type === WHITE) ++i;
+      return tree[i];
+    },
+    rangeString: function(tree, from, to){
+      var s = '';
+      for (var i=from; i<=to; ++i) {
+        s += tree[i].value;
+      }
+      return s;
+    },
     heatmap: function(tree, forThumb, from, to){
-      return tree.map(function(token,index){
-        if (from !== false && index < from) return;
-        if (to !== false && index >= to) return;
+      var arr = [];
+      if (from === false) from = 0;
+      if (to === false) to = tree.length;
+      for (var index=from; index<to; ++index) {
+        var token = tree[index];
 
-        var special = false;
+        var alreadyEscaped = false;
         var returnValue = '';
 
         if (token.isExpressionStart) {
-          special = true;
+          alreadyEscaped = true;
 
           if (!forThumb) {
             if (token.isFunctionMarker) {
@@ -119,48 +136,50 @@ var transformer = (function(Par){
                   transformer.escape(token.value) +
                 '</span>';
             } else {
-              returnValue +=
-                '<span id="id-'+index+'">' +
-                  transformer.escape(token.value) +
-                '</span>';
+              returnValue += '<span id="id-'+index+'">';
+              returnValue += transformer.escape(token.value);
+
+              // add a bunch of rules on which to extend the wrap. certain things can be improved visually.
+              var next = token;
+              var last = token;
+              while (next = transformer.nextBlack(last, tree)) {
+                if (next.value === '.') {
+                  next = transformer.nextBlack(next, tree);
+                  if (next) {
+                    returnValue += transformer.rangeString(tree, index+1, next.white);
+                    index = next.white;
+                  }
+                } else if ((last.value === '++' || last.value === '--') && next.type === IDENTIFIER) {
+                  returnValue += transformer.rangeString(tree, index+1, next.white);
+                  index = next.white;
+                } else if (next.value === '++' || next.value === '--' || next.value === '[') {
+                  returnValue += transformer.rangeString(tree, index+1, next.white);
+                  index = next.white;
+                  next = null; // end of any expression
+                } else if ((next.value === '+' || next.value === '-') || next.type === NUMBER) {
+                  returnValue += transformer.rangeString(tree, index+1, next.white);
+                  index = next.white;
+                  next = null; // end of any expression
+                } else {
+                  next = null; // did not find anything to continue, so stop
+                }
+                last = next;
+              }
+
+              returnValue += '</span>';
             }
           } else {
             returnValue += transformer.escape(token.value);
           }
-
-          if (token.value === '(' || token.value === '{' || token.value === '[') {
-            if (!forThumb) returnValue += '</span>';
-          } else if (!token.isFunctionMarker) {
-            var t = tree[token.isExpressionStart.white-1];
-            while (t.type === WHITE || t.type === ASI) t = tree[t.white-1];
-
-            if (!t.closeSpans) t.closeSpans = 1;
-            else ++t.closeSpans;
-          }
-        }
-        if (token.closeSpans) {
-          if (!special) returnValue += transformer.escape(token.value);
-          special = true;
-          for (var i=0; i<token.closeSpans; ++i) {
-            if (!forThumb) returnValue += '</span>';
-          }
-        }
-        if (token.argTokens) { // function token
-          token.argTokens.forEach(function(t){
-            t.isArg = true;
-          });
-        }
-        if (token.isArg) {
-          special = true;
+        } else if (token.isArg) {
+          alreadyEscaped = true;
           if (!forThumb) returnValue += '<span id="id-'+index+'">';
           returnValue += transformer.escape(token.value);
           if (!forThumb) returnValue += '</span>';
-        }
-
-        if (token.isElseToken || (token.isStatementStart && !token.isForElse)) {
+        } else if (token.isElseToken || (token.isStatementStart && !token.isForElse)) { // `else if` is special cased
           if (token.sameToken) {
             if (!forThumb) returnValue += '<span id="id-'+index+'">\u03B5</span>';
-            if (!special) returnValue += transformer.escape(token.value);
+            if (!alreadyEscaped) returnValue += transformer.escape(token.value);
           } else {
             var eindex = index;
             if (token.isElseToken) {
@@ -192,18 +211,20 @@ var transformer = (function(Par){
               if (!forThumb) if (!token.elseStart) returnValue += '</span>';
             }
           }
-          special = true;
+          alreadyEscaped = true;
         }
-        if (token.isForElse >= 0) {
-          special = true;
+        if (token.isForElse >= 0) { // else-if
+          alreadyEscaped = true;
           returnValue += transformer.escape(token.value);
           if (!forThumb) returnValue += '</span>';
         }
 
-        if (special) return returnValue;
-        if (token.type === ASI) return '';
-        return transformer.escape(token.value);
-      }).join('');
+        if (alreadyEscaped) arr.push(returnValue);
+        else if (token.type === ASI) arr.push('');
+        else arr.push(transformer.escape(token.value));
+      }
+
+      return arr.join('');
     },
   };
 
