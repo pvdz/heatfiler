@@ -75,7 +75,8 @@ HeatFiler.prototype = {
     // global is either `window`, or whatever the global object is in nodejs these days
     var global = (function(){ return this; })();
 
-    // for nodejs, we store a single instance of each function so we can copy that to global in each file
+    // we store a single instance of each function so we can copy that to global (web) or to each file (node)
+
     this.globals[_transformer.nameStatementCount] = global[_transformer.nameStatementCount] = function(fid, uid){
       var obj = stats[fid].statements[uid];
       ++obj.count;
@@ -93,11 +94,67 @@ HeatFiler.prototype = {
       that.typeCheck(obj, value);
       if (toLocalStorage) tryFlush();
     };
-    this.globals[_transformer.nameReturnCheck] = global[_transformer.nameReturnCheck] = function(fid, funcid, value, implicit){
+    this.globals[_transformer.nameReturnCheck] = global[_transformer.nameReturnCheck] = function(fid, funcid, retid, value, implicit){
       var obj = stats[fid].functions[funcid];
       that.typeCheck(obj, value);
       if (implicit && obj.types.indexOf('implicit') < 0) obj.types += ' implicit';
       if (toLocalStorage) tryFlush();
+
+      if (retid >= 0) {
+        obj = stats[fid].statements[retid];
+        if (!obj._init) {
+          // hack...
+          obj._init = true;
+          obj.types = '';
+          obj.truthy = 0;
+          obj.falsy = 0;
+        }
+        that.typeCheck(obj, value);
+      }
+
+      return value;
+    };
+    this.globals[_transformer.nameQmark] = global[_transformer.nameQmark] = function(fid, quid, part, value) {
+      //  allCount: 0,
+      //    allTypes: '',  leftTypes: '', rightTypes: '', condTypes: '',
+      //    allTruthy: 0,  leftTruthy: 0, rightTruthy: 0, condTruthy: 0,
+      //    allFalsy: 0,   leftFalsy: 0,  rightFalsy: 0,  condFalsy: 0,
+
+      var obj = stats[fid].qmarks[quid];
+
+      switch (part) {
+        case 'S':
+          ++obj.allCount;
+          if (!!value) ++obj.allTruthy;
+          else ++obj.allFalsy;
+          that.typeCheck(obj, value, 'condTypes');
+          break;
+        case 'L':
+          ++obj.allCount;
+          if (value) {
+            ++obj.leftTruthy;
+            ++obj.allTruthy;
+          } else {
+            ++obj.leftFalsy;
+            ++obj.allFalsy;
+          }
+          that.typeCheck(obj, value, 'leftTypes');
+          that.typeCheck(obj, value, 'allTypes');
+          break;
+        case 'R':
+          ++obj.allCount;
+          if (value) {
+            ++obj.rightTruthy;
+            ++obj.allTruthy;
+          } else {
+            ++obj.rightFalsy;
+            ++obj.allFalsy;
+          }
+          that.typeCheck(obj, value, 'rightTypes');
+          that.typeCheck(obj, value, 'allTypes');
+          break;
+      }
+
       return value;
     };
 
@@ -112,12 +169,13 @@ HeatFiler.prototype = {
       global[key] = globals[key];
     }
   },
-  typeCheck: function(obj, value){
+  typeCheck: function(obj, value, prop){
+    if (!prop) prop = 'types';
     var type = typeof value;
-    if (obj.types.indexOf(type) < 0) obj.types += ' ' + type;
+    if (obj[prop].indexOf(type) < 0) obj[prop] += ' ' + type;
     if (type === 'number') {
-      if (isNaN(value) && obj.types.indexOf('NaN') < 0) obj.types += ' NaN';
-      if (!isFinite(value) && obj.types.indexOf('Infinity') < 0) obj.types += ' Infinity';
+      if (isNaN(value) && obj[prop].indexOf('NaN') < 0) obj[prop] += ' NaN';
+      if (!isFinite(value) && obj[prop].indexOf('Infinity') < 0) obj[prop] += ' Infinity';
     }
     if (value) ++obj.truthy;
     else ++obj.falsy;

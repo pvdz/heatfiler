@@ -14,6 +14,8 @@ var ui = {
   focusStart: 0,
   focusStop: 0,
 
+  excludedRanges: {},
+
   modeFileRelative: true,
   modePauseUpdating: false,
   modeCodeCoverage: false,
@@ -118,27 +120,48 @@ var ui = {
 
     hm.onclick = function(e){
       var id = e.target.id;
-      if (id.slice(0, ui.funcTokenIdPrefix.length) === ui.funcTokenIdPrefix) {
-        id = parseInt(id.slice(ui.funcTokenIdPrefix.length), 10);
-
-        // include name of object literal key or var assignment
-        var from = id;
-        var prev = ui.prevBlack(tree, id);
-        if (prev.value === ':' || prev.value === '=') {
-          var pprev = ui.prevBlack(tree, prev.white);
-          if (pprev.type === IDENTIFIER) from = pprev.white;
-        }
-
-        if (ui.focusStart === from) {
-          ui.openFile(ui.currentFid, true);
-          gebi(ui.funcTokenIdPrefix+id).scrollIntoView();
-        } else {
-          var ft = ui.trees[ui.currentFid][id];
-          var to = ft.rhc.white;
-          ui.setFocus(from, to, id);
-        }
+      var cn = e.target.className;
+      if (id.slice(0, ui.funcTokenIdPrefix.length) === ui.funcTokenIdPrefix ) {
+        ui.focusFunction(tree, parseInt(id.slice(ui.funcTokenIdPrefix.length), 10));
+      } else if (cn === 'function-focus') {
+        ui.focusFunction(tree, parseInt(e.target.getAttribute('data-index'), 10));
+      } else if (cn === 'function-exclude') {
+        ui.excludeFunction(tree, parseInt(e.target.getAttribute('data-index'), 10));
       }
     };
+  },
+  excludeFunction: function(tree, index){
+    var token = tree[index];
+    var to = token.rhc.white;
+
+    var found = false;
+    var excluded = ui.excludedRanges[ui.currentFid];
+    if (!excluded) excluded = ui.excludedRanges[ui.currentFid] = {};
+
+    while (index <= to) {
+      if (excluded[index]) delete excluded[index];
+      else excluded[index] = true;
+      ++index;
+    }
+
+  },
+  focusFunction: function(tree, index){
+    // include name of object literal key or var assignment
+    var from = index;
+    var prev = ui.prevBlack(tree, index);
+    if (prev.value === ':' || prev.value === '=') {
+      var pprev = ui.prevBlack(tree, prev.white);
+      if (pprev.type === IDENTIFIER) from = pprev.white;
+    }
+
+    if (ui.focusStart === from) {
+      ui.openFile(ui.currentFid, true);
+      gebi(ui.funcTokenIdPrefix+index).scrollIntoView();
+    } else {
+      var ft = ui.trees[ui.currentFid][index];
+      var to = ft.rhc.white;
+      ui.setFocus(from, to, index);
+    }
   },
   updateThumb: function(){
     del('thumb');
@@ -244,6 +267,7 @@ var ui = {
 
   getHeatmapElements: function(){
     // cache all important elements so we can update them quickly
+    var excluded = ui.excludedRanges[ui.currentFid] || {};
     var stats = ui.currentHf.stats;
     var page = stats[ui.currentFid];
     var all = [];
@@ -278,6 +302,14 @@ var ui = {
         all.push({type:'arg', uid:uid, dom:e});
         if (!e) console.log('error: arg element not found for ',page, uid);
         else e.className = 'heat arg';
+      }
+    }
+    for (var uid in page.qmarks) if (page.qmarks.hasOwnProperty(uid)) {
+      if (ui.inFocus(uid)) {
+        var e = gebi('qmark-id-'+uid);
+        all.push({type:'qmark', uid:uid, dom:e});
+        if (!e) console.log('error: arg element not found for ',page, uid);
+        else e.className = 'heat qmark';
       }
     }
 
@@ -334,10 +366,8 @@ var ui = {
     if (!all) {
       ui.elements = 'crashed';
       all = ui.elements = ui.getHeatmapElements();
-    }
-    else if (!all.length) {
-      console.log("no elements... refrtching");
-//      debugger;
+    } else if (!all.length) {
+      console.log("no elements... refetching");
       all = ui.elements = ui.getHeatmapElements();
     }
 
@@ -347,15 +377,23 @@ var ui = {
       // determine max count
       for (var _fid in stats) if (stats.hasOwnProperty(_fid)) {
         if (!ui.modeFileRelative || +_fid === ui.currentFid) {
+          var excluded = ui.excludedRanges[_fid] || {};
+
           var stmts = stats[_fid].statements;
-          for (var _uid in stmts) if (stmts.hasOwnProperty(_uid) && ui.inFocus(_uid)) {
-            var o = stmts[_uid];
-            if ((o.type === 'stmt' || o.type === 'expr') && o.count > max) max = o.count;
+          for (var _uid in stmts) if (stmts.hasOwnProperty(_uid)) {
+            _uid = parseInt(_uid, 10);
+            if (ui.inFocus(_uid) && !excluded[_uid]) {
+              var o = stmts[_uid];
+              if ((o.type === 'stmt' || o.type === 'expr') && o.count > max) max = o.count;
+            }
           }
           var exprs = stats[_fid].expressions;
-          for (var _uid in exprs) if (exprs.hasOwnProperty(_uid) && ui.inFocus(_uid)) {
-            var o = exprs[_uid];
-            if ((o.type === 'stmt' || o.type === 'expr') && o.count > max) max = o.count;
+          for (var _uid2 in exprs) if (exprs.hasOwnProperty(_uid2)) {
+            _uid2 = parseInt(_uid2, 10);
+            if (ui.inFocus(_uid2) && !excluded[_uid2]) {
+              var o = exprs[_uid2];
+              if ((o.type === 'stmt' || o.type === 'expr') && o.count > max) max = o.count;
+            }
           }
         }
       }
@@ -365,6 +403,7 @@ var ui = {
 
     var fid = ui.currentFid;
     var page = stats[fid];
+    var excludedOnPage = ui.excludedRanges[fid] || {};
 
     all.forEach(function(o){
       switch (o.type) {
@@ -372,21 +411,35 @@ var ui = {
         case 'stmt': var obj = page.statements[o.uid]; break;
         case 'func': var obj = page.functions[o.uid]; break;
         case 'arg': var obj = page.arguments[o.uid]; break;
+        case 'qmark': var obj = page.qmarks[o.uid]; break;
         default: throw 'unknown type';
       }
 
       var e = o.dom;
+      var excluded = excludedOnPage[o.uid];
 
-      if (obj.type === 'arg') {
-        var title = 'Types: '+obj.types;
+      e.style.textDecoration = excluded ? 'line-through' : 'none';
+
+      if (obj.isReturn) {
+        var title =
+          'Return ('+bignums(obj.count)+'), stats for _this_ return only:\n'+
+          'T/F: '+bignums(obj.truthy)+' / '+bignums(obj.falsy)+
+          ' (abs: '+percent(obj.truthy,obj.count)+'% / '+percent(obj.falsy,obj.count)+'%)' +
+          ' (rel: '+percent(obj.truthy,max)+'% / '+percent(obj.falsy,max)+'%)\n' +
+          'Types: '+(obj.types === undefined ? '' : obj.types);
+        if (e.title !== title) e.title = title;
+      } else if (obj.type === 'arg') {
+        var title = 'Types: '+obj.types + (excluded?' ':'');
         if (e.title !== title) {
           e.title = title;
-          if (obj.types.indexOf(' ',1) > 0) e.style.backgroundColor = 'rgb(255, 100, 255)';
+          if (excluded) e.style.backgroundColor = 'inherit';
+          else if (obj.types.indexOf(' ',1) > 0) e.style.backgroundColor = 'rgb(255, 100, 255)';
         }
       } else if (obj.type === 'func') {
         var count = obj.truthy + obj.falsy;
 
         var title =
+          (excluded ? '!! function excluded from counts !!\n' : '') +
           'Called: '+bignums(count)+' x\n' +
           'Return types: '+obj.types+'\n' +
           'T/F: '+bignums(obj.truthy)+' / '+bignums(obj.falsy) +
@@ -399,24 +452,62 @@ var ui = {
             if (obj.types.indexOf('implicit') >= 0) e.style.backgroundColor = 'rgb(255, 230, 255)';
             else e.style.backgroundColor = 'rgb(255, 100, 255)';
           }
+          else e.style.backgroundColor = 'inherit';
         }
+      } else if (obj.type === 'qmark') {
+        title =
+          'Ternary ('+bignums(obj.allCount)+'):\n' +
+            ' - total T/F: '+bignums(obj.allTruthy)+' / '+bignums(obj.allFalsy)+
+            ' (abs: '+percent(obj.allTruthy,obj.allCount)+'% / '+percent(obj.allFalsy,obj.allCount)+'%)' +
+            ' (rel: '+percent(obj.allTruthy,max)+'% / '+percent(obj.allFalsy,max)+'%)\n' +
+            ' - total types: '+obj.allTypes+'\n' +
+            '\n'+
+            ' - condition T/F: '+bignums(obj.condTruthy)+' / '+bignums(obj.condFalsy)+
+            ' (abs: '+percent(obj.condTruthy,obj.allCount)+'% / '+percent(obj.condFalsy,obj.allCount)+'%)' +
+            ' (rel: '+percent(obj.condTruthy,max)+'% / '+percent(obj.condFalsy,max)+'%)\n' +
+            ' - condition types: '+obj.condTypes+'\n' +
+            '\n'+
+            ' - mid T/F: '+bignums(obj.leftTruthy)+' / '+bignums(obj.leftFalsy)+
+            ' (abs: '+percent(obj.leftTruthy,obj.allCount)+'% / '+percent(obj.leftFalsy,obj.allCount)+'%)' +
+            ' (rel: '+percent(obj.leftTruthy,max)+'% / '+percent(obj.leftFalsy,max)+'%)\n' +
+            ' - mid types: '+obj.leftTypes+'\n' +
+            '\n'+
+            ' - right T/F: '+bignums(obj.rightTruthy)+' / '+bignums(obj.rightFalsy)+
+            ' (abs: '+percent(obj.rightTruthy,obj.allCount  )+'% / '+percent(obj.rightFalsy,obj.allCount)+'%)' +
+            ' (rel: '+percent(obj.rightTruthy,max)+'% / '+percent(obj.rightFalsy,max)+'%)\n' +
+            ' - right types: '+obj.rightTypes;
+
+        if (e.title !== title) e.title = title;
       } else {
-        title = (obj.epsilon ? 'End of block: ':'')+bignums(obj.count)+' ('+percent(obj.count, max)+'%)';
-        if (obj.type === 'stmt') title = 'Statement: '+ title;
-        else if (obj.type === 'expr') {
+        title = (obj.epsilon ? 'End of block: ':'');
+        title += bignums(obj.count)+' ('+percent(obj.count, max)+'%)';
+
+        if (obj.isReturn) {
+          title = 'Statement: '+ title;
+
+        } else if (obj.type === 'stmt') {
+          title = 'Statement: '+ title;
+        } else if (obj.type === 'expr') {
           title =
             'Expr: '+ title+'\n' +
-              'T/F: '+bignums(obj.truthy)+' / '+bignums(obj.falsy)+
-              ' ('+percent(obj.truthy,obj.count)+'% / '+percent(obj.falsy,obj.count)+'%)\n' +
-              'Types: '+obj.types;
+            'T/F: '+bignums(obj.truthy)+' / '+bignums(obj.falsy)+
+            ' (abs: '+percent(obj.truthy,obj.count)+'% / '+percent(obj.falsy,obj.count)+'%)' +
+            ' (rel: '+percent(obj.truthy,max)+'% / '+percent(obj.falsy,max)+'%)\n' +
+            'Types: '+obj.types;
         }
-        else throw 'unknown type';
+        else throw console.log(obj),'unknown type:'+obj.type;
+
+        if (excluded) title = '(excluded)\n' + title;
 
         if (e.title !== title) {
           e.title = title;
-          var n = (255-Math.floor((obj.count / max)*255));
-          if (ui.modeCodeCoverage) n = (obj.count || e.innerHTML === '\u03B5') ? 255 : 0;
-          e.style.backgroundColor = 'rgb(255, '+n+', '+n+')';
+          if (excluded) {
+            e.style.backgroundColor = 'inherit';
+          } else {
+            var n = (255-Math.floor((obj.count / max)*255));
+            if (ui.modeCodeCoverage) n = (obj.count || e.innerHTML === '\u03B5') ? 255 : 0;
+            e.style.backgroundColor = 'rgb(255, '+n+', '+n+')';
+          }
         }
       }
     });
@@ -439,7 +530,6 @@ var ui = {
     }
   },
   inFocus: function(fid){
-    fid = parseInt(fid, 10);
     return (ui.focusStart === false && ui.focusStop === false) || (fid >= ui.focusStart && fid < ui.focusStop);
   },
 

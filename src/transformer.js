@@ -13,6 +13,7 @@ var transformer = (function(Par){
     nameExpressionCount: '$expression$',
     nameArgCheck: '$arg$',
     nameReturnCheck: '$return$',
+    nameQmark: '$qmark$',
 
     process: function(fid, input, stats){
       var tokens = transformer.parse(input);
@@ -37,35 +38,54 @@ var transformer = (function(Par){
             token.elseStart = undefined;
           }
         }
+
         if (token.returnValueEmpty) {
-          token.value += ' ' + transformer.nameReturnCheck+'('+fid+','+token.funcToken.white+')';
-        }
-        else if (token.returnValueEnd) {
-          token.value += ' ' + transformer.nameReturnCheck+'('+fid+','+token.funcToken.white+',(';
+          token.value += ' ' + transformer.nameReturnCheck+'('+fid+','+token.funcToken.white+',-1)';
+        } else if (token.returnValueEnd) {
+          token.value += ' ' + transformer.nameReturnCheck+'('+fid+','+token.funcToken.white+','+token.white+',(';
           token.returnValueEnd.value += '))';
         }
+
         if (token.isExpressionStart) {
           token.value = transformer.nameExpressionCount+'('+fid+', '+index+', (' + token.value;
+
+          var qmark = token.isQmarkStart || token.isQmarkLeft || token.isQmarkRight;
+          if (qmark) {
+
+            var type = 'S';
+            if (token.isQmarkLeft) type = 'L';
+            else if (token.isQmarkRight) type = 'R';
+
+            token.value = '('+transformer.nameQmark+'('+fid+', '+qmark.white+', "'+type+'", (' + token.value;
+          }
 
           var t = tree[token.isExpressionStart.white-1];
           while (t.type === WHITE || t.type === ASI) t = tree[t.white-1];
 
           t.value += '))';
+
+          if (qmark) {
+            t.value += ')))';
+          }
         }
+
         if (token.functionBodyClose) {
-          token.value = transformer.nameReturnCheck+'('+fid+','+token.funcToken.white+', void 0, true);' + token.value;
+          token.value = transformer.nameReturnCheck+'('+fid+','+token.funcToken.white+', -1, void 0, true);' + token.value;
         }
+
         if (token.isStatementStart) {
           token.value =
             (token.sameToken?'':' { ') +
             transformer.nameStatementCount+'('+fid+', '+index+'); ' +
             token.value;
         }
+
         if (token.isStatementStop) {
           for (var i=0; i<token.isStatementStop; ++i) {
             token.value += ' } ';
           }
         }
+
         if (token.argTokens) {
           token.lhc.value += token.argTokens.map(function(t){
             return transformer.nameArgCheck+'('+fid+','+t.white+','+t.value+'); ';
@@ -77,9 +97,9 @@ var transformer = (function(Par){
     },
     escape: function(s){ return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); },
     initializeStats: function(fid, tree, stats){
-      if (!stats[fid]) stats[fid] = {statements:{}, expressions:{}, functions:{}, arguments:{}};
+      if (!stats[fid]) stats[fid] = {statements:{}, expressions:{}, functions:{}, arguments:{}, qmarks:{}};
       var fstats = stats[fid];
-      tree.map(function(token,index){
+      tree.forEach(function(token,index){
         if (token.isFunctionMarker) {
           fstats.functions[index] = {type:'func', types:'', truthy:0, falsy:0};
         }
@@ -87,16 +107,29 @@ var transformer = (function(Par){
           fstats.expressions[index] = {type:'expr', count:0, types:'', truthy:0, falsy:0};
         }
         if (token.isStatementStart) {
-          fstats.statements[token.isForElse || index] = {type:'stmt', count:0, epsilon:!!token.sameToken};
+          var obj = fstats.statements[token.isForElse || index] = {
+            type: 'stmt',
+            count: 0,
+          };
+          if (token.sameToken) obj.epsilon = true;
+          if (token.isReturnKeyword) obj.isReturn = true;
         }
         if (token.argTokens) {
           token.argTokens.forEach(function(t){
             fstats.arguments[t.white] = {type:'arg', types:'', truthy:0, falsy:0};
           });
         }
-
-        return token.value;
-      }).join('');
+        if (token.isQmark) {
+          // qmark gathers stats from neighbors. this is just a placeholder to trigger the update
+          fstats.qmarks[token.white] = {
+            type:'qmark',
+            allCount: 0,
+            allTypes: '',  leftTypes: '', rightTypes: '', condTypes: '',
+            allTruthy: 0,  leftTruthy: 0, rightTruthy: 0, condTruthy: 0,
+            allFalsy: 0,   leftFalsy: 0,  rightFalsy: 0,  condFalsy: 0,
+          };
+        }
+      });
     },
     // pretty much same structure as transform()... (so if that function changes..)
     nextBlack: function(token, tree){
@@ -132,6 +165,8 @@ var transformer = (function(Par){
               // opposed to just hiding these elements and let them be). So...
               returnValue +=
                 '<span id="id-'+index+'" style="display:none;"></span>' +
+                '<span class="function-focus" title="click to zoom in on this function" data-index="'+index+'">\u2923</span>' +
+                '<span class="function-exclude" title="click to exclude this function from stats" data-index="'+index+'">\u2295</span>' +
                 '<span id="func-id-'+index+'">' +
                   transformer.escape(token.value) +
                 '</span>';
@@ -143,23 +178,68 @@ var transformer = (function(Par){
               var next = token;
               var last = token;
               while (next = transformer.nextBlack(last, tree)) {
-                if (next.value === '.') {
+                var lv = last.value;
+                var nv = next.value;
+
+                if (nv === '.') {
                   next = transformer.nextBlack(next, tree);
                   if (next) {
                     returnValue += transformer.rangeString(tree, index+1, next.white);
                     index = next.white;
                   }
-                } else if ((last.value === '++' || last.value === '--') && next.type === IDENTIFIER) {
+                } else if (
+                  ((lv === '++' || lv === '--') && next.type === IDENTIFIER) ||
+                  lv === '!' ||
+                  lv === '~' ||
+                  lv === 'new' ||
+                  lv === 'delete' ||
+                  lv === 'typeof' ||
+                  nv === '==' ||
+                  nv === '===' ||
+                  nv === '!=' ||
+                  nv === '!==' ||
+                  lv === '==' ||
+                  lv === '===' ||
+                  lv === '!=' ||
+                  lv === '!==' ||
+                  nv === '+' ||
+                  nv === '-' ||
+                  next.type === NUMBER ||
+                  lv === '+' ||
+                  lv === '-' ||
+                  lv === '/' ||
+                  lv === '&' ||
+                  lv === '|' ||
+                  lv === '%' ||
+                  lv === '*' ||
+                  lv === '<' ||
+                  lv === '<=' ||
+                  lv === '>=' ||
+                  lv === '>>=' ||
+                  lv === '>>>=' ||
+                  nv === '<' ||
+                  nv === '<=' ||
+                  nv === '>=' ||
+                  nv === '>>=' ||
+                  nv === '>>>='
+                ) {
                   returnValue += transformer.rangeString(tree, index+1, next.white);
                   index = next.white;
-                } else if (next.value === '++' || next.value === '--' || next.value === '[') {
+                } else if (nv === '++' || nv === '--' || nv === '[') {
                   returnValue += transformer.rangeString(tree, index+1, next.white);
                   index = next.white;
                   next = null; // end of any expression
-                } else if ((next.value === '+' || next.value === '-') || next.type === NUMBER) {
+                } else if (nv === '(' && next.isCallStart) {
                   returnValue += transformer.rangeString(tree, index+1, next.white);
                   index = next.white;
-                  next = null; // end of any expression
+                  next = transformer.nextBlack(next, tree);
+                  if (next.value === ')' && next.isCallStop) {
+                    returnValue += transformer.rangeString(tree, index+1, next.white);
+                    index = next.white;
+                    next = transformer.nextBlack(next, tree);
+                  } else {
+                    next = null;
+                  }
                 } else {
                   next = null; // did not find anything to continue, so stop
                 }
@@ -171,6 +251,9 @@ var transformer = (function(Par){
           } else {
             returnValue += transformer.escape(token.value);
           }
+        } else if (token.isQmark) {
+          returnValue += '<span id="qmark-id-'+index+'">' + transformer.escape(token.value) + '</span>';
+          alreadyEscaped = true;
         } else if (token.isArg) {
           alreadyEscaped = true;
           if (!forThumb) returnValue += '<span id="id-'+index+'">';
@@ -196,6 +279,7 @@ var transformer = (function(Par){
               }
             }
 
+            // TODO what case is this?
             if (!forThumb && token.isFunctionMarker) {
               // we want to hide the expression span (not remove it because that makes other
               // parts of the code break and handling that gracefully is far more complex

@@ -73,12 +73,16 @@ var parseFiles = function(str){
 };
 
 var bignums = function(count){
-  if (count > 1000000) count = (Math.round(count/100000)/10)+'M';
-  else if (count > 1000) count = (Math.round(count/100)/10)+'K';
+  if (count) {
+    if (count > 1000000) count = (Math.round(count/100000)/10)+'M';
+    else if (count > 1000) count = (Math.round(count/100)/10)+'K';
+  } else {
+    count = 0;
+  }
   return count;
 };
 var percent = function(n, m){
-  return (Math.round((n / m)*10000)/100);
+  return (Math.round((n / m)*10000)/100) || 0;
 };
 
 var fetch = function(files, func, contents){
@@ -102,9 +106,6 @@ var fetch = function(files, func, contents){
         });
       }
     });
-    if (received === files.length) {
-      func(files, contents);
-    }
   } else {
     func(files, []);
   }

@@ -30,6 +30,10 @@
       .heat { color: black; border: 1px solid transparent; line-height: 17px; cursor: help; }
       .heat:hover { border-color: black; }
 
+      #heatmap .function-focus { vertical-align: text-bottom; font-size: 19px; cursor: pointer; }
+      #heatmap .function-exclude { vertical-align: text-bottom; font-size: 23px; margin-right: 1px; cursor: pointer; }
+      #heatmap .function-focus:hover, #heatmap .function-exclude:hover { color: red; }
+
       #thumb { position:fixed; top:0; right:0; overflow: hidden; pointer-events:none; line-height: 17px; }
       #thumb-handler { position: fixed; top: 0; right: 0; }
       #thumb-viewport { background-color: rgba(0,0,0,0.2); position:fixed; top:0; right:0; pointer-events: none; }
@@ -57,13 +61,12 @@
     </style>
   </head>
   <body>
-    <p>ignore function, wrap parens toggle, improve range of colored spans</p>
     <div class="tabs">
       <div class="open tab home">Home</div>
       <div class="tab run">Run code</div>
       <div class="tab listen">Listen</div>
-      <div class="tab empty">Empty</div>
       <div class="tab nodejs">NodeJS</div>
+      <!--<div class="tab empty"></div>-->
       <div class="tab result">Result</div>
     </div>
     <div class="content">
@@ -80,15 +83,27 @@
           <li>Or, you can enter the files to process one-by-one</li>
         </ul>
         <p>You can either immediately show the output or put the stats in <code>localStorage</code>.</p>
-        <p>For the files, make sure you enter each file on its own line. You can prefix it with a <code>+</code> or <code>-</code> to indicate whether you want to profile (<code>+</code>) the file or not (<code>-</code>).</p>
-        <p>If you decide to send the profiling stats to local storage, you will need to open this page in another tab (in the same browser) and select the "Listen" section.</p>
+        <p>For the files, make sure you enter each file on its own line. You can prefix it with a <code>+</code> or <code>-</code> to indicate whether you want to profile (<code>+</code>) the file or not (<code>-</code>). This page fetches them with ajax.</p>
+        <p>If you decide to send the profiling stats to local storage, you will need to open this page in another tab (in the same browser) and follow steps in the "Listen" tab.</p>
 
         <p>My input will be</p>
-          <input id="run-code" type="radio" name="inputtype" value="code" checked/> <b>code</b> <i>(enter regular JS below)</i><br/>
-          <input id="run-files" type="radio" name="inputtype" value="files"/> <b>files</b> <i>(enter full or relative "ajaxable" paths below)</i><br/>
+          <label>
+            <input id="run-code" type="radio" name="inputtype" value="code" checked/>
+            <b>code</b> <i>(enter regular JS below)</i><br/>
+          </label>
+          <label>
+            <input id="run-files" type="radio" name="inputtype" value="files"/>
+            <b>files</b> <i>(enter full or relative "ajaxable" paths below)</i><br/>
+          </label>
         <p>And I want to run it</p>
-          <input id="run-here" type="radio" name="target" value="code" checked/> <b>locally</b> <i>(heatmap in this browser tab)</i><br/>
-          <input id="run-tab" type="radio" name="target" value="files"/> to <b>localStorage</b> <i>(heatmap in another browser tab)</i><br/>
+          <label>
+            <input id="run-here" type="radio" name="target" value="code" checked/>
+            <b>locally</b> <i>(heatmap AND code run in this browser tab)</i><br/>
+          </label>
+          <label>
+            <input id="run-tab" type="radio" name="target" value="files"/>
+            to <b>localStorage</b> <i>(heatmap in another browser tab)</i><br/>
+          </label>
         <p><button class="start">Start</button></p>
 
         <!-- the spaces should force the browsers to wrap the line since html5 apparently explicitly does not allow newlines in a placeholder( WWHHHYYYYYYY?? :'( !!! the fuck do they care) -->
@@ -125,7 +140,7 @@
         <p>You can require HeatFiler in any existing nodejs project. Just tell it which files to profile and it will show the results here.</p>
         <p>By default files are <b>not</b> profiled. When you run the whole nodejs integration thing, you will get a list of files that have been seen below.</p>
         <p>The outputted file (configurable) must of course be accessible through XHR from this page. Other than that it works similar to the <code>localStorage</code> method.</p>
-        <p>Enter the configured location of the output file, either absolute or relative to this page. If cross domain, make sure it's accessible through XHR (setup CORS). In most browsers you'll need to run this through a webserver in this mode, regardless (due to XHR).</p>
+        <p>Enter the configured location of the output file, either absolute or relative to this page. If cross domain, make sure it's accessible through XHR (setup CORS). In most browsers you'll need to run this page through a webserver in this mode, regardless (can't XHR from file system).</p>
         <button class="start">ping output file</button>
         <input class="input" placeholder="../stats.js"/>
 
