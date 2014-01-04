@@ -17,24 +17,24 @@
 /**
  * Overloaded constructor/function to create new CDE elements.
  * When used as a function, it does what the old CDE.wrap did.
- * It will try to convert the parameter to a dom element and 
+ * It will try to convert the parameter to a dom element and
  * wrap that element. If string, it applies document.getElementById,
- * CDE elements are returned as they are and otherwise a new 
+ * CDE elements are returned as they are and otherwise a new
  * CDE element is created and returned.
- * If called as constructor (new CDE(...)), the element is 
+ * If called as constructor (new CDE(...)), the element is
  * assumed to be a dom element and returned.
- * 
+ *
  * @param {Object} mix For new CDE, dom is assumed. Otherwise dom,cde or string (id)
  * @param {Object} boolPlaceholder=false Only for function, returns a blank CDE element even if the argument doesn't resolve
  * @return CDE
  */
 var CDE = function(mix, boolPlaceholder){
 	var bool;
-	
+
 	if (this instanceof CDE) { // new CDE
-		
-		// save element (we actually save the element 
-		// so the CDE element can be safely included 
+
+		// save element (we actually save the element
+		// so the CDE element can be safely included
 		// in closures, without leaking the dom elements)
 		if (mix) {
 			this._id = CDE._getId(mix);
@@ -48,9 +48,9 @@ var CDE = function(mix, boolPlaceholder){
 				mix._id = this._id;
 			}
 		}
-	
+
 	} else { // CDE.wrap
-		
+
 		// will we return something?
 		bool = true;
 		// dont do this...
@@ -61,16 +61,16 @@ var CDE = function(mix, boolPlaceholder){
 		if (bool && typeof mix == 'string') mix = document.getElementById(mix);
 		// if dge returned null...
 		if (!mix) bool = false;
-		
+
 		// create a new cde object with it
 		if (bool) return new CDE(mix);
-		
+
 		// something was wrong but you want a placeholder anyways
 		if (boolPlaceholder) return new CDE();
-		
+
 		// just return nothing
 		return null;
-		
+
 	}
 };
 
@@ -84,10 +84,10 @@ CDE.prototype.toString = function(){
 
 /**
  * Extend this CDE or a target object with the properties given in the first object.
- * If no second object is given, obj becomes target and target becomes CDE... 
+ * If no second object is given, obj becomes target and target becomes CDE...
  * This uses a "blind" for in so do not pass on host objects...
  * (eg. no testing for hasownproperty is done!)
- * 
+ *
  * @param Object target
  * @param Object obj=false If false, obj becomes target and target becomes CDE
  * @return obj
@@ -99,16 +99,16 @@ CDE.extend = function(target, obj){
 		target = CDE;
 	}
 	for (key in obj) target[key] = obj[key];
-	
+
 	return obj;
 };
 
 /**
  * Add all properties of the object to the prototype of the target...
- * If no second object is given, obj becomes target and target becomes CDE... 
+ * If no second object is given, obj becomes target and target becomes CDE...
  * This uses a "blind" for in so do not pass on host objects...
  * (eg. no testing for hasownproperty is done!)
- * 
+ *
  * @param Object target
  * @param Object obj=false If false, obj becomes target and target becomes CDE
  * @return obj
@@ -128,8 +128,8 @@ CDE.proto = function(target, obj){
 // #          Inner Core          #
 // ################################
 
-CDE.extend({<!--
-	
+CDE.extend({
+
 	/**
 	 * This used to be the core wrapper of CDE :)
 	 * @depricated in favor of CDE()
@@ -161,7 +161,7 @@ CDE.extend({<!--
 	 */
 	_getId: function(dom){
 		var id;
-		
+
 		if (!dom) {
 			if (window.debug) debug("CDE._getId: element is falsy");
 			return 0;
@@ -192,19 +192,19 @@ CDE.extend({<!--
 	 */
 	uncache: function(dom, boolAndChilderen, boolSkipDom){
 		var i;
-		if (!dom) return;
+		if (!dom) return null;
 		// first remove this element from the cache
 		if (!boolSkipDom) CDE._uncache(dom, true); // passed on dom
-		
+
 		if (boolAndChilderen) {
 			// now remove it's childeren, recursively
 			i = dom.childNodes.length;
 			while (i--) CDE.uncache(dom.childNodes[i], true); // recursive
 		}
-		
+
 		return null;
 	},
-	
+
 	/**
 	 * Uncache one element, if found
 	 * @param dom dom
@@ -217,7 +217,7 @@ CDE.extend({<!--
 			CDE.debug('cacheSize');
 		}
 	},
-	
+
 	/**
 	 * Add an element to the gc.
 	 * @param cde cde
@@ -231,7 +231,7 @@ CDE.extend({<!--
 		else CDE._arrGc[target].push(cde);
 		return cde;
 	},
-	
+
 	/**
 	 * Cleanup garbage. Uncache all elements in the gc.
 	 * @param string target=false Only delete elements in this group
@@ -245,14 +245,14 @@ CDE.extend({<!--
 				a = CDE._arrGc.standard;
 			}
 			try {
-	
+
 				// now uncache all
 				if (a) {
 					while (cde = a.pop()) {
 						cde.uncache();
 					}
 				}
-			
+
 			} catch(er) { if (window.debug) debug("CDE.gc("+target+") error:"+target+":"+er.message); }
 		}
 	}
@@ -263,15 +263,15 @@ CDE.extend({<!--
 // #      Object attributes       #
 // ################################
 
-CDE.proto({ <!--
+CDE.proto({
 	/**
 	 * Helps to identify CDE objects
 	 */
 	isCde: true,
-	
+
 	/**
 	 * @see CDE.prototype.ifDom
-	 * @var bool _boolFailProof=false Prevent errors if element does not exist. 
+	 * @var bool _boolFailProof=false Prevent errors if element does not exist.
 	 */
 	_boolFailProof: false
 });
@@ -280,7 +280,7 @@ CDE.proto({ <!--
 // #      Object methods          #
 // ################################
 
-CDE.proto({	<!--
+CDE.proto({
 
 	/**
 	 * The actual element
@@ -291,9 +291,9 @@ CDE.proto({	<!--
 		if (!e) if (window.debug) debug("Error: CDE.prototype.dom("+this._id+") "+(this._strId?"["+this._strId+"] ":"")+"is empty. Most likely it was deleted (from another object?)...");
 		return e;
 	},
-	
+
 	/**
-	 * Add multiple childeren to an element. If an array is passed 
+	 * Add multiple childeren to an element. If an array is passed
 	 * on, every element of the array is added. Every element is
 	 * wrapped, then added. empty arguments are ignored.
 	 * @param mix any number of arguments is accepted. Additionally, array parameters will be walked through and every element gets added (recursively)
@@ -317,7 +317,7 @@ CDE.proto({	<!--
 		}
 		return this;
 	},
-	
+
 	/**
 	 * Map for mix.add(this)
 	 * @param CDE mixParent Add this to the argument CDE object
@@ -330,10 +330,10 @@ CDE.proto({	<!--
 		CDE.toDom(mix).appendChild(this.dom());
 		return this;
 	},
-	
+
 	/**
 	 * Insert this element before mixTarget.
-	 * Takes this element and makes it the child of the parent of mix, before mix, using 
+	 * Takes this element and makes it the child of the parent of mix, before mix, using
 	 * mix as argument to insertBefore.
 	 * @todo: make the optional behavior default instead and add cde.before for the currently default behavior (and also add an after...)
 	 * @param mix mixTarget Argument to CDE(), must be part of dom, <this> will be added before mix.
@@ -354,7 +354,7 @@ CDE.proto({	<!--
 		}
 		return this;
 	},
-	
+
 	/**
 	* Replace this by cde. Deletes and uncaches <this>. Returns argument! Not this!
 	* @param CDE cde
@@ -365,7 +365,7 @@ CDE.proto({	<!--
 		this.del();
 		return cde;
 	},
-	
+
 	/**
 	 * Remove this element from parent element
 	 * After invocation, the returned element will not be part of the dom
@@ -381,7 +381,7 @@ CDE.proto({	<!--
 		if (boolAlsoFromCache) this.uncache(boolAndAllChildNodes);
 		return this;
 	},
-	
+
 	/**
 	 * Remove this element from the internal CDE cache. Only do this when certain you wont use it anymore!
 	 * Dont use this on elements to which .on is applied! Or the event fails.
@@ -393,7 +393,7 @@ CDE.proto({	<!--
 	uncache: function(boolChilderenToo){
 		var arr,i;
 		if (this._boolFailProof && !this.dom()) return this;
-		
+
 		//debug("uncaching: "+this+"["+this.dom()+"]"); // turn off internal uncaching of debugged items when turning this on
 		// stop all running ease timers
 		if ((arr = this.dom().arrEaseObjects) && (i = arr.length) > 0) {
@@ -403,17 +403,17 @@ CDE.proto({	<!--
 		}
 		// remove the element
 		CDE.uncache(this.dom(), boolChilderenToo);
-		
+
 		return null;
 	},
-	
+
 	/**
 	 * Put this CDE into a garbage collector.
 	 * When CDE.gc() is called, all elements in the bin
 	 * are uncached.
 	 * This helps to cleanup the cache when creating gui's.
 	 * Never put an element into this bin to which .on() is
-	 * applied. This probably fails the event because the 
+	 * applied. This probably fails the event because the
 	 * CDE object is wrapped in a closure. When the object
 	 * wants to refer to the dom, the element is gone.
 	 *
@@ -423,7 +423,7 @@ CDE.proto({	<!--
 	gc: function(target){
 		return CDE._gcAdd(this, target);
 	},
-	
+
 	/**
 	 * Set attributes of this CDE. Every attribute of given object is set on <this>.dom().
 	 * If the parameter is a string, it is asumed to be the css class
@@ -435,14 +435,14 @@ CDE.proto({	<!--
 		var key, e = this.dom(); // cache
 
 		if (!mix || (this._boolFailProof && !e)) return this;
-		
+
 		// if two arguments, assume name:value pair
 		if (arguments.length == 2) this._atr(e, mix, mixValue);
 		// strings are assumed to be the class for this object
 		else if (typeof mix === 'string') this._atr(e, 'className', mix);
 		// assume object literal, process each element
 		else for (key in mix) this._atr(e, key, mix[key]);
-		
+
 		return this;
 	},
 
@@ -472,27 +472,27 @@ CDE.proto({	<!--
 	 */
 	css: function(mix, mixValue){
 		var s, key;
-		
+
 		if (!mix || (this._boolFailProof && !this.dom())) return this;
-		
+
 		if (this._boolTextNode) {
 			if (window.debug) debug("Error: Unable to apply .css to a text node... "+this+".css("+mix+","+mixValue+")");
 			return this;
 		}
-		
+
 		// cache the style object
 		s = this.dom().style;
-		
+
 		// first check whether two args were given. if so, assume them to be a name:value pair
 		if (arguments.length == 2) this._css(mix, arguments[1], s);
 		// now check for string. if mix is a string, the classname was passed on instead (because the second parameter is empty)
 		else if (typeof mix === 'string') this.atr('className', mix);
 		// otherwise it should be an array with name:value pairs for the style object
 		else for (key in mix) this._css(key, mix[key], s);
-	
+
 		return this;
 	},
-	
+
 	/**
 	 * Inner function to set one style on this
 	 * @param string name
@@ -522,7 +522,7 @@ CDE.proto({	<!--
 				if (typeof(s.filter) != 'undefined') s.filter = "alpha(opacity="+Math.round(value*100)+")"; // works in IE6+, but also succeeds in opera...
 				// set for all other browsers (causes problem in IE, but since Opera "supports" filters, we have to set it anyways)
 				try { s[key] = value; } catch(er2){ if (window.debug) window.debug("cde._css("+name+","+value+","+s+"): "+er2.message); }
-			} 
+			}
 			// except in IE, cssFloat is styleFloat (just set both, otherwise we have to do browser detection)
 			else if (key == 'cssFloat' && document.all) s.styleFloat = value;
 			// other values can be set, i think
@@ -532,20 +532,20 @@ CDE.proto({	<!--
 			} else if (window.debug) debug('<span style="color:red;">CDE._css fail</span>: Tried setting ['+key+'] to ['+value+'] on ['+s+']. '+er);
 		}
 	},
-	
+
 	/**
 	 * This function, inspired by thomas fuchs, accepts some css arguments and slowly updates
 	 * the properties of this to become what's given. The change will be gradual, in a certain
 	 * timeframe with certain time steps. It allows for simple transitions and effects.
 	 * This will be a work in progress for a little while...
 	 * This function uses timeout to accomplish what it does.
-	 * Several special exceptions have been made, like fading (because that relies on other 
-	 * properties like display and visibility) and margin,padding and borderWidth/Height/Style 
+	 * Several special exceptions have been made, like fading (because that relies on other
+	 * properties like display and visibility) and margin,padding and borderWidth/Height/Style
 	 * (but not border itself).
 	 * Some special properties are actually a lot like others (margin=padding=border(width))
 	 * There's basically three types of values; color, size and opacity. We need to
 	 * handle them all. I guess...
-	 * Default value for sizes are px. Deal with it. Color values are only supported in 
+	 * Default value for sizes are px. Deal with it. Color values are only supported in
 	 * some number format (hex or rgb) because things get bloated to support all colors.
 	 * That includes colors _you_ set in your css. Use numbers, not names! Or this probably fails.
 	 * If you call an ease effect for the same property as another ease effect that's still running,
@@ -566,20 +566,20 @@ CDE.proto({	<!--
 	 * - boolAfterFadeDelete=false: When the fade completes, remove the element from DOM
 	 * - boolAfterEaseUncache=false: When the fade completes, remove the element from cache
 	 * - boolAfterEaseUncacheCompletely: When the fade complets, remove the element AND its childeren from cache
-	
+
 	demo :
 	var rep,r = function(){ return Math.round((Math.random()*239)+16).toString(16); };
 	rep = function(cde){ cde.ease( { opacity: Math.random(), backgroundColor: '#'+r()+r()+r() }, { callback: function(){ rep(cde); } } ); };
 	rep(CDE.div().bgc('00ff00').abs(10,400,200,200).dba());
-	
+
 	demo:
 	CDE.div() .bgc('red') .abs(10,300,200,300) .html("moo") .dba() .ease({padding:30},{callback: function(){debug("done!");}})
-	 
+
 	 * @return this
 	 */
 	ease: function(targets, options){
 		var that, atr, stepTime, easeTime, startTime, currentDisplay, currentVis, obj, arr, oldTargets, i, cb, bool, _;
-	
+
 		//debug("CDE.ease: ["+targets+"]["+options+"]");
 		if (this._boolFailProof && !this.dom()) return this;
 		// ignore empty args
@@ -588,7 +588,7 @@ CDE.proto({	<!--
 		if (!options) options = {};
 		// reference to this object
 		that = this;
-	
+
 		// preprocessing
 		// @todo: allow percentages? parse border shortcut?
 		for (atr in targets) {
@@ -618,8 +618,8 @@ CDE.proto({	<!--
 				delete targets[atr];
 			}
 		}
-	
-		// Now if a certain effect is busy, we want to make sure it stops, while not 
+
+		// Now if a certain effect is busy, we want to make sure it stops, while not
 		// affecting the other effects. Like when we're fading and changing color, and
 		// we want to fade again, the second fade should only stop the first fade but
 		// let the color change continue. Cue complex situation.
@@ -628,7 +628,7 @@ CDE.proto({	<!--
 			while (i--) {
 				if (!arr[i]) continue; // empty elements have been canceled/completed already
 				oldTargets = arr[i].targets;
-				// ok, another ease effect is busy. check if any of the targeted attributes 
+				// ok, another ease effect is busy. check if any of the targeted attributes
 				// are equal to the ones about to start the current effect...
 				for (atr in oldTargets) {
 					if (atr in targets) {
@@ -638,9 +638,9 @@ CDE.proto({	<!--
 				}
 				// if there are any properties, just continue with the next item in the array
 				bool = false;
-				for (_ in oldTargets) { 
-					bool = true; 
-					break; 
+				for (_ in oldTargets) {
+					bool = true;
+					break;
 				}
 				if (bool) continue;
 				// at this point, there are no more properties
@@ -657,12 +657,12 @@ CDE.proto({	<!--
 				}
 			}
 		}
-		
+
 		// determine timing
 		stepTime = options.intStepTime||10; // about 50ms per step
 		easeTime = options.intEaseTime||1000; // 500ms for entire effect
 		startTime = (new Date()).getTime(); // allow us to track actual position in case browser takes longer than stepTime for one step
-	
+
 		// prepare values for each attribute to ease
 		for (atr in targets) {
 			//debug("ease: ["+atr+"]["+target+"]");
@@ -703,7 +703,7 @@ CDE.proto({	<!--
 					obj.current = CDE.color(obj.current);
 					obj.currentRgb = CDE.rgb(obj.current);
 					obj.target = CDE.color(obj.target); // hex color WITH hash prefix
-					obj.targetRgb = CDE.rgb(obj.target); 
+					obj.targetRgb = CDE.rgb(obj.target);
 				// otherwise get the number part of the current value (lose any suffix string)
 				} else {
 					obj.current = parseFloat(obj.current)||0;
@@ -711,8 +711,8 @@ CDE.proto({	<!--
 				}
 			}
 			//debug(atr+":["+obj.current+"]["+obj.target+"]");
-		}	
-		
+		}
+
 		// save all parameters to this fade
 		obj = {targets: targets, options: options};
 		obj.timer = setInterval(function(){
@@ -722,9 +722,9 @@ CDE.proto({	<!--
 			pos = (timeNow - startTime) / easeTime; // the position of the transition on a scale of 0..1
 			pos = pos<0?0:(pos>1?1:pos); // ensure the position is within 0..1 boundaries
 			if (!options.boolEase) pos = (-Math.cos(pos*Math.PI)/2) + 0.5; // apply easing function (thanks thomas fuchs)
-			
+
 			//debug("step["+name+"]: pos:"+pos+", newValue:"+newValue);
-			
+
 			// are we done?
 			if (pos >= 1) {
 				// set to target (just to make sure no rounding errors occurred)
@@ -741,20 +741,20 @@ CDE.proto({	<!--
 					else if (window.debug) debug("CDE.ease(): options.callback was not a function...["+options.callback+"]");
 					options.callback = null; // prevent calling it more than once
 				}
-	
+
 				// woohoo, done! fire post ease options
 				if (options.boolAfterFadeDelete) that.del(); // delete from dom
 				// uncache (should be last action, it'll wreck anything else)
 				if (options.boolAfterEaseUncacheCompletely) that.uncache(true); // delete from cache, and all childeren
 				else if (options.boolAfterEaseUncache) that.uncache; // delete from cache
-	
+
 			// otherwise, set the current newValue and wait for the next iteration
 			} else {
 				for (atr in targets) {
 					obj = targets[atr];
 					// add to the current value the amount of value according to the current position of the transition effect (yeah, yeah)
 					if (obj.isColor) newValue = CDE.rgb(Math.round(obj.currentRgb.r + ((obj.targetRgb.r-obj.currentRgb.r) * pos)), Math.round(obj.currentRgb.g + ((obj.targetRgb.g-obj.currentRgb.g) * pos)), Math.round(obj.currentRgb.b + ((obj.targetRgb.b-obj.currentRgb.b) * pos)));
-					else newValue = obj.current + ((obj.target-obj.current) * pos); 
+					else newValue = obj.current + ((obj.target-obj.current) * pos);
 					// do we require round values (we usually do, opacity seems to be the only exception...)
 					if (!obj.noRound) newValue = Math.round(newValue);
 					that.css(atr, newValue+obj.suffix);
@@ -762,19 +762,19 @@ CDE.proto({	<!--
 				}
 			}
 		}, stepTime);
-		
+
 		// save the parameters in the dom element (its important that there's no dom reference in this object...)
 		// the parameter object is saved under closure, but so are the parameters themselves anyways, so that's
 		// no real problem.
 		if (!this.dom().arrEaseObjects) this.dom().arrEaseObjects = [];
-		// note that i will be remembered under closure. so the inner function will still be able to refer to it, 
+		// note that i will be remembered under closure. so the inner function will still be able to refer to it,
 		// and reference the correct array value accordingly
 		i = this.dom().arrEaseObjects.length;
 		this.dom().arrEaseObjects[i] = obj;
-		
+
 		return this;
 	},
-	
+
 	/**
 	 * Get absolute position of the element in the document body. Walks the entire tree.
 	 * Use opos if you just want the offset values to the parent.
@@ -787,10 +787,10 @@ CDE.proto({	<!--
 	pos: function(to, boolInner){ // absolute position relative to document
 		var w, h, e=this.dom(), intTotalTop=0, intTotalLeft=0;
 		if (this._boolFailProof && !e) return {x:0,y:0,w:0,h:0};
-		
+
 		if (to === false) to = document.body;
 		else if (to === true) to = e.offsetParent;
-		
+
 		if (boolInner) {
 			w = e.clientWidth;
 			h = e.clientHeight;
@@ -798,7 +798,7 @@ CDE.proto({	<!--
 			w = e.offsetWidth;
 			h = e.offsetHeight;
 		}
-		
+
 		// now climb the DOM tree
 		do {
 			intTotalTop += e.offsetTop;
@@ -806,10 +806,10 @@ CDE.proto({	<!--
 			e = e.offsetParent;
 		// quit if we want it relative to parent, if there was no parent or if parent is body
 		} while(e && e != to); //  && e.nodeName && e.nodeName.toUpperCase() != 'BODY'
-		
+
 		return {x: intTotalLeft, y: intTotalTop, w: w, h: h};
 	},
-	
+
 	/**
 	 * Return the four offset*** or client*** vales of this element
 	 * @todo: rename this function to something more proper...
@@ -834,8 +834,8 @@ CDE.proto({	<!--
 			h: e.offsetHeight
 		};
 	},
-	
-	/** 
+
+	/**
 	 * Append <this>.dom() to the body by document.body.appendChild
 	 * Dont call before creation of body element (like in the head)
 	 * @return CDE <this>
@@ -844,12 +844,12 @@ CDE.proto({	<!--
 		if (this._boolFailProof && !this.dom()) return this;
 		return CDE.dba(this);
 	},
-	
+
 	/**
 	 * Crossbrowser events. Fixes context, argument, mousecoordinates, mousebutton.
-	 * For explorer, the context of the event will be the same as with addEventListener 
+	 * For explorer, the context of the event will be the same as with addEventListener
 	 * and the event argument is supplied as well (but also available in "event" global).
-	 * As an added bonus, for mouse events (with mixType), the fifth parameter on the 
+	 * As an added bonus, for mouse events (with mixType), the fifth parameter on the
 	 * callback will always contain the correct button (ie and the others) where
 	 * left=1,middle=2,right=3. But only if your browser allows it.
 	 * Check out the link for more details on the coordinates and mouse buttons.
@@ -858,11 +858,11 @@ CDE.proto({	<!--
 	 * @see http://unixpapa.com/js/mouse.html
 	 * @param string strEvent Should be the event without 'on' prefixed (click, load, etc)
 	 * @param function func The function to execute when the event fires. It's (optional) arguments are: callback(evt, x, y, domOrg). x and y can be bogus/empty/crap. `this` is equal to domOrg. Note that this function is wrapped and cannot be unregistered as given. See boolReturnFunction for that.
-	 * @param string mixType=false 
-				Second and third parameter of callback are x/y of mouse relative to parameter: 
-				- "screen" (entire screen), 
-				- "viewport" (browser content window regardless of scroll state), 
-				- "body" (content including scroll), 
+	 * @param string mixType=false
+				Second and third parameter of callback are x/y of mouse relative to parameter:
+				- "screen" (entire screen),
+				- "viewport" (browser content window regardless of scroll state),
+				- "body" (content including scroll),
 				- "element" (target element including margin/border/padding)
 				- dom (a DOM element)
 				- cde (a CDE)
@@ -875,7 +875,7 @@ CDE.proto({	<!--
 
 		var cdeTarget, f, e = this.dom();
 		if (this._boolFailProof && !e) return this;
-		
+
 		// fix cde / dom (string is special, not id!). if not string, its the element object, either cde or dom
 		if (mixType && typeof mixType != 'string') {
 			// set the target element to the requested target
@@ -888,16 +888,16 @@ CDE.proto({	<!--
 		}
 		// if not set, use <this> instance as the target
 		if (!cdeTarget) cdeTarget = this;
-	
+
 		// note that actual event callbacks are created by factories below
 		// to prevent leaks, we dont pass on dom elements, but their CDE wrapped
 		// elements. These don't reference the dom element directly, but indirectly
-		// through a number. Because of that, their event handlers will not cause 
+		// through a number. Because of that, their event handlers will not cause
 		// leakage when closing the document...
-		
+
 		if (!func && window.debug) debug("CDE.on: no function passed on...");
-		if (!func) return;
-		
+		if (!func) return this;
+
 		// all except ie
 		if (e.addEventListener) e.addEventListener(strEvent, f = CDE._onFx(mixType, func, cdeTarget, this), false);
 		// ie, call the func parameter in the context of this (attachEvent normally binds to window)
@@ -905,12 +905,12 @@ CDE.proto({	<!--
 
 		if (boolReturnFunction) return f;
 		f = null;
-		
+
 		return this;
 	},
 
 	/**
-	 * Remove an event listener from this object. 
+	 * Remove an event listener from this object.
 	 * You have to supply the callback yourself. Should be the same as you registered with on.
 	 *
 	 * @param string strEvent Without the "on"-prefix
@@ -924,7 +924,7 @@ CDE.proto({	<!--
 		if (e.removeEventListener) e.removeEventListener(strEvent, func, false);
 		// ie, call the func parameter in the context of this (attachEvent normally binds to window)
 		else e.detachEvent('on'+strEvent, func);
-		
+
 		return this;
 	},
 
@@ -944,7 +944,7 @@ CDE.proto({	<!--
 		while (f = e.firstChild) e.removeChild(f);
 		return this;
 	},
-	
+
 	/**
 	 * Get the current style for this object.
 	 * You can pass on camelcased javascript names, or dashed css names for each style.
@@ -963,7 +963,7 @@ CDE.proto({	<!--
 			strName = CDE.jsToCss(strName);
 			// float is reserved and should be cssFloat when not in IE
 			if (strName == 'float' || strName == 'styleFloat') strName = 'cssFloat';
-			
+
 			if ((a = document.defaultView) && (b = a.getComputedStyle(e,null))) {
 				if (boolNormColor) return CDE.color(b.getPropertyValue(strName));
 				return b.getPropertyValue(strName);
@@ -989,7 +989,7 @@ CDE.proto({	<!--
 				strName = CDE.cssToJs(strName);
 				// float is reserved and should be styleFloat in IE
 				if (strName == 'float' || strName == 'cssFloat') strName = 'styleFloat';
-	
+
 				if (boolNormColor) return CDE.color(e.currentStyle[strName]);
 				return e.currentStyle[strName];
 			}
@@ -997,7 +997,7 @@ CDE.proto({	<!--
 		if (window.debug) debug("CDE.getStl: Did not know what to do... [strName]");
 		return NaN; // unknown...
 	},
-	
+
 	/**
 	 * Add a new stylesheet (!).
 	 * This sheet is added to the cde so it will disappear when the element is removed...
@@ -1006,10 +1006,10 @@ CDE.proto({	<!--
 	 * @param string str The css for the stylsheet
 	 * @return CDE <this>
 	 */
-	addCss: function(str){ // add stylesheet 
+	addCss: function(str){ // add stylesheet
 		return this.add(CDE.css(str));
 	},
-	
+
 	/**
 	 * Obsoleted in favour of ifDom
 	 * @see ifDom
@@ -1020,7 +1020,7 @@ CDE.proto({	<!--
 		this._boolFailProof = true; // its ok for an obect not to exist?
 		return this;
 	},
-	
+
 	/**
 	 * Since CDE objects are shared and based on the dom object they wrap, we cant have one object with and another
 	 * object without optional existence. So we use the ifDom ... endIf methods to to this for us. Whenever you
@@ -1033,7 +1033,7 @@ CDE.proto({	<!--
 		this._boolFailProof = true; // its ok for an obect not to exist?
 		return this;
 	},
-	
+
 	/**
 	 * Set the optional existence to off.
 	 * @see CDE.prototype.ifDom
@@ -1043,7 +1043,7 @@ CDE.proto({	<!--
 		this._boolFailProof = false;
 		return this;
 	},
-	
+
 	/**
 	 * Set focus to this element
 	 * @return CDE <this>
@@ -1053,7 +1053,7 @@ CDE.proto({	<!--
 		this.dom().focus();
 		return this;
 	},
-	
+
 	/**
 	 * Remove focus from this element (blur)
 	 * @return CDE <this>
@@ -1063,7 +1063,7 @@ CDE.proto({	<!--
 		this.dom().blur();
 		return this;
 	},
-	
+
 	/**
 	 * Select the text in this input (probably only works for inputs with selectable text...)
 	 * @return CDE <this>
@@ -1072,7 +1072,7 @@ CDE.proto({	<!--
 		this.dom().select();
 		return this;
 	},
-	
+
 	/**
 	* Call dom().cloneNode() and return the new CDE with new node.
 	* Main reason for this is that the internal CDE property
@@ -1095,7 +1095,7 @@ CDE.proto({	<!--
 });
 
 // static methods used by CDE.prototype.on
-CDE.extend({ <!--
+CDE.extend({
 	// constants to determine mouse button
 	BUTTON_LEFT: 1,
 	BUTTON_MIDDLE: 2,
@@ -1114,7 +1114,7 @@ CDE.extend({ <!--
 	KEY_TAB: 9,
 	KEY_BSP: 8,
 	KEY_CAPS: 20,
-		
+
 	/**
 	 * Firefox factory for cde.on()
 	 * @param mixed mixType
@@ -1150,7 +1150,7 @@ CDE.extend({ <!--
 			}
 		};
 	},
-	
+
 	/**
 	 * InternetExplorer factory for cde.on()
 	 * @param mixed mixType
@@ -1158,12 +1158,12 @@ CDE.extend({ <!--
 	 * @param CDE cdeTarget
 	 * @param CDE cdeOrg
 	 * @return function
-	 */ 
+	 */
 	_onIe: function(mixType, func, cdeTarget, cdeOrg){
 		return function(){
 			// fix button (left=1,middle=2,right=3)
 			var d, pageX, pageY, pos, intButton;
-			
+
 			intButton = (event.button < 2) ? CDE.BUTTON_LEFT : ((event.button == 4) ? CDE.BUTTON_MIDDLE : CDE.BUTTON_RIGHT); // ie
 			// call callback depending on mousetype
 			switch (mixType) {
@@ -1183,9 +1183,9 @@ CDE.extend({ <!--
 					if (mixType == 'element') {
 						pos = cdeTarget.pos();
 						//debug("on "+pageX+"-"+pos.x+" "+pageY+" "+pos.y);
-						func.call(cdeTarget.dom(), event, pageX-pos.x, pageY-pos.y, cdeOrg.dom(), intButton); 
+						func.call(cdeTarget.dom(), event, pageX-pos.x, pageY-pos.y, cdeOrg.dom(), intButton);
 					} else { // browser
-						func.call(cdeTarget.dom(), event, pageX, pageY, cdeOrg.dom(), intButton); 
+						func.call(cdeTarget.dom(), event, pageX, pageY, cdeOrg.dom(), intButton);
 					}
 					break;
 				case 'keyboard':
@@ -1202,8 +1202,8 @@ CDE.extend({ <!--
 // #    Creating Dom Elements     #
 // ################################
 
-CDE.extend({ <!--
-	
+CDE.extend({
+
 	/**
 	 * Create new DOM element.
 	 * @param string strType Name of DOM element to create
@@ -1212,7 +1212,7 @@ CDE.extend({ <!--
 	dom: function(strType) {
 		return CDE(document.createElement(strType));
 	},
-	
+
 	/**
 	 * Creates a span with their innerHTML set to the first param
 	 * @param string str value for innerHTML
@@ -1222,7 +1222,7 @@ CDE.extend({ <!--
 		// a simple mapping to create textnodes through innerHTML
 		return CDE.span(str);
 	},
-	
+
 	/**
 	 * @depricated in favor of CDE.html
 	 */
@@ -1231,7 +1231,7 @@ CDE.extend({ <!--
 		// a simple mapping to create textnodes through innerHTML
 		return CDE.span(str);
 	},
-	
+
 	/**
 	 * Create a textnode (instance is marked by _boolTextNode)
 	 * @param string str
@@ -1242,7 +1242,7 @@ CDE.extend({ <!--
 		cde._boolTextNode = true;
 		return cde;
 	},
-	
+
 	/**
 	 * Create a div
 	 * @param string str=undefined Set to innerHTML
@@ -1253,7 +1253,7 @@ CDE.extend({ <!--
 		if (arguments.length > 0) cde.html(str);
 		return cde;
 	},
-	
+
 	/**
 	 * Create a span
 	 * @param string str=undefined Set to innerHTML
@@ -1264,7 +1264,7 @@ CDE.extend({ <!--
 		if (arguments.length > 0) cde.html(str);
 		return cde;
 	},
-	
+
 	/**
 	 * Create an img
 	 * @param string src='' The url for the image ('' if not string)
@@ -1275,7 +1275,7 @@ CDE.extend({ <!--
 		if (typeof src != 'string') src = '';
 		return CDE.dom('img').atr({src:src,alt:alt||'',title:alt||''});
 	},
-	
+
 	/**
 	 * Create an input of given type
 	 * Radio buttons can be safely created in IE using this function.
@@ -1287,10 +1287,10 @@ CDE.extend({ <!--
 	 */
 	inp: function(strType, name, value, bool) {
 		var cde,e;
-	
+
 		// type defaults to text
 		if (!strType) strType = 'text';
-		
+
 		// radio buttons cannot normally be created dynamically in explorer...
 		// since it's hard to detect and the overhead is little, just create
 		// it using this hack for all browsers
@@ -1311,7 +1311,7 @@ CDE.extend({ <!--
 		// check or select element
 		if (bool && strType == 'option') cde.sel(true);
 		else if (bool) cde.chk(true);
-	
+
 		return cde;
 	},
 
@@ -1325,7 +1325,7 @@ CDE.extend({ <!--
 		if (htmlFor) cde.atr('htmlFor',htmlFor);
 		return cde;
 	},
-	
+
 	/**
 	 * Create a textarea
 	 * @param string value
@@ -1357,13 +1357,13 @@ CDE.extend({ <!--
 	 * The function executed when hovering over a cde.lnk
 	 */
 	_tdu: function(){ this.style.textDecoration = 'underline'; }, // can this leak?
-	
+
 	/**
 	 * Text-Decoration: None
 	 * The function executed when no longer hovering over a cde.lnk
 	 */
 	_tdn: function(){ this.style.textDecoration = 'none'; },
-	
+
 	/**
 	 * Create dynamic javascript button
 	 * @param string str Text of button
@@ -1375,7 +1375,7 @@ CDE.extend({ <!--
 		if (!funcOnclick) funcOnclick = function(){};
 		return CDE.dom("button").on('click', funcOnclick).html(txt);
 	},
-	
+
 	/**
 	 * Create an anchor
 	 * @param string url Url of the anchor
@@ -1389,7 +1389,7 @@ CDE.extend({ <!--
 		if (boolTb) obj.target = '_blank';
 		return CDE.dom('a').html(txt).atr(obj);
 	},
-	
+
 	/**
 	 * Create line breaks. Note: this does not return a CDE but a plain dom element.
 	 * @param int n=1 Number of line breaks to return (in an array)
@@ -1403,10 +1403,10 @@ CDE.extend({ <!--
 		if (n === 1) return CDE.dom('br');
 		brs = [];
 		for (i=0; i<n; ++i) brs.push(CDE.dom('br'));
-	
+
 		return brs;
 	},
-	
+
 	/**
 	 * Create a table header (TH) element
 	 * @param string txt=undefined Contents of the element
@@ -1416,7 +1416,7 @@ CDE.extend({ <!--
 		if (typeof txt == 'undefined') txt = '';
 		return CDE.dom('th').html(txt);
 	},
-	
+
 	/**
 	 * Create a table data (TH) element
 	 * @param string txt=undefined Contents of the element
@@ -1426,7 +1426,7 @@ CDE.extend({ <!--
 		if (typeof txt == 'undefined') txt = '';
 		return CDE.dom('td').html(txt);
 	},
-	
+
 	/**
 	 * Create a table. The first parameter is used to create the contents of the table (if present).
 	 * Every element of the parameter should be an array and represents a table row (TR).
@@ -1484,7 +1484,7 @@ CDE.extend({ <!--
 		}
 		return {};
 	},
-	
+
 	/**
 	 * Create a select. Good luck applying those styles...
 	 * @param array arrDesc List of descriptions for each option. It's what the user sees.
@@ -1501,10 +1501,10 @@ CDE.extend({ <!--
 	 */
 	select: function(arrDesc, arrValue, objOpts){ // stl, atr, intSelectedIndex, boolSelectByValue, optionStl, optionAtr, boolUseDescAsValue
 		var cde, val, i;
-		
+
 		// ensure the object exists
 		if (!objOpts) objOpts = {};
-		
+
 		// create actual select
 		cde = CDE.dom('select').css(objOpts.stl).atr(objOpts.atr);
 		// add options
@@ -1521,7 +1521,7 @@ CDE.extend({ <!--
 		}
 		return cde;
 	},
-	
+
 	/**
 	 * Create a resized image using a sprite map.
 	 * The x,y is the top-left coordinate of the target sprite
@@ -1531,7 +1531,7 @@ CDE.extend({ <!--
 	 * It returns a div with overflow hidden only showing that part
 	 * of the resized sprite map, which we want to see, creating the
 	 * effect of the image showing, resized, but not the whole map.
-	 * Note that the function first downloads the sprite map so it 
+	 * Note that the function first downloads the sprite map so it
 	 * can get it's original dimensions. This saves you having to
 	 * supply them :)
 	 * Use CDE.prototype.spriteTo to change this sprite.
@@ -1557,7 +1557,7 @@ CDE.extend({ <!--
 		// set onload first to prevent race condition.. (yes, IE sometimes fires synchronously :s)
 		img.onload = function(){
 			var w,h ,dw,dh;
-			
+
 			// scale factor
 			dw = tw/ow;
 			dh = th/oh;
@@ -1567,15 +1567,15 @@ CDE.extend({ <!--
 			// new coordinate locations
 			x *= dw;
 			y *= dh;
-			
+
 			img = null;
-			
+
 			// add the image to the container
 			CDE.img(src, alt).css({
-				position: 'absolute', 
-				left: -Math.round(x)+'px', 
-				top: -Math.round(y)+'px', 
-				width: ~~w+'px', 
+				position: 'absolute',
+				left: -Math.round(x)+'px',
+				top: -Math.round(y)+'px',
+				width: ~~w+'px',
 				height: ~~h+'px'
 			}).ns().addTo(cde).uncache();
 		};
@@ -1589,8 +1589,8 @@ CDE.extend({ <!--
 
 // other core functions
 
-CDE.extend({ <!--
-	
+CDE.extend({
+
 	/**
 	 * Add <this> to document.body
 	 * Dont call before body is created.
@@ -1601,7 +1601,7 @@ CDE.extend({ <!--
 		CDE(document.body).add(Array.prototype.slice.call(arguments));
 		return arguments[0];
 	},
-	
+
 	/**
 	 * Load an external javascript (random number appended automatically, unless specified otherwise).
 	 * Nothing happens when the load fails... (it can't be detected safely crossbrowser without polling).
@@ -1612,18 +1612,18 @@ CDE.extend({ <!--
 	 */
 	ljs: function(url, funcOnload, boolNoAntiCache, boolSilent) {
 		var funcCallback, funcDebugDone, cde, boolLoaded=false, strUrl;
-		
+
 		if (!boolNoAntiCache) {
 			if (url.indexOf('?') >= 0) url += '&'+Math.random();
 			else url += '?'+Math.random();
 		}
-		
+
 		if (window.debug && !boolSilent) {
 			strUrl = url.substring(0,20);
 			if (window.debug) debug('Importing '+strUrl+"...");
 			funcDebugDone = function() { window.debug("Imported "+strUrl+"..."); };
 		}
-	
+
 		funcCallback = function(){
 			// prevent double execution
 			if (boolLoaded) return;
@@ -1634,24 +1634,24 @@ CDE.extend({ <!--
 			if (funcOnload) funcOnload();
 			// remove the script from the DOM after it loads
 			// the var cde is a container which is remembered and
-			// shared due to closure. So when this function is 
+			// shared due to closure. So when this function is
 			// executed, the contents will be the CDE script which
 			// is assigned later on. This prevents unneccessary
 			// pollution of the DOM tree.
 			cde.del(true);
 			cde = null;
 		};
-		
+
 		// add the script to the body
 		cde = CDE.dom('script').on('load', funcCallback).on('readystatechange', function(){
 			// loaded = fresh, complete = cached. silly ms
 			if (this.readyState === 'loaded' || this.readyState === 'complete') funcCallback();
 		}).atr({type: 'text/javascript', language: 'javascript', src: url}).dba();
 	},
-	
+
 	/**
 	 * Create a stylesheet
-	 * Note that after creating, you can add styles through 
+	 * Note that after creating, you can add styles through
 	 * cde.text(), except on explorer, which can only replace the current
 	 * text...
 	 * @param string str=false The contents of the stylesheet
@@ -1659,11 +1659,11 @@ CDE.extend({ <!--
 	 */
 	css: function(str){
 		var cde = CDE.dom('style').atr({type: 'text/css'});
-		
+
 		cde._boolStyleSheet = true; // mark as stylesheet so text() will take note of it...
-		
+
 		if (str) cde.text(str);
-	
+
 		return cde;
 	},
 
@@ -1705,7 +1705,7 @@ CDE.extend({ <!--
 	 * indigo, ivory, khaki, lavender, lime, linen, magenta, maroon, moccasin, navy, olive, orange, orchid, peru, pink,
 	 * plum, purple, red, salmon, sienna, silver, snow, tan, teal, thistle, tomato, turquoise, violet, wheat, white, yellow
 	 * You can find all the colors as well, just decomment them to get their support (adds about 3.5kb to the size of CDE)
-	 
+
 	 debug(CDE.color('#abc'));
 	 debug(CDE.color('abc'));
 	 debug(CDE.color('#aabbcc'));
@@ -1714,7 +1714,7 @@ CDE.extend({ <!--
 	 debug(CDE.color('11aabbcc'));
 	 debug(CDE.color('rgb(100,200,256)'));
 	 debug(CDE.color('rgb(100,200,13)'));
-	 
+
 	 * @param string color Should be any result from the browser when checking the applied style, colornames are restricted (but you can extend that to support any in the source)
 	 * @param bool noHash=false Prefix the hash on return?
 	 * @return string
@@ -1722,19 +1722,19 @@ CDE.extend({ <!--
 	color: function(str,noHash){
 		var r,m,obj,hash=(noHash?'':'#');
 		str = (str+'').toLowerCase();
-	
+
 		// [#]xxxxxx
 		r = /^#?([0-9a-f]{6})$/;
 		if (m = r.exec(str)) return hash+m[1];
-	
+
 		// [#]xxx
 		r = /^#?([0-9a-f])([0-9a-f])([0-9a-f])$/;
 		if (m = r.exec(str)) return hash+m[1]+m[1]+m[2]+m[2]+m[3]+m[3];
-	
+
 		// #aarrggbb (with alpha, is IE only), normalize to #rrggbb
 		r = /^#?[0-9a-f]{2}([0-9a-f]{6})$/;
 		if (m = r.exec(str)) return hash+m[1];
-	
+
 		// rgb(xxx, xxx, xxx)
 		r = /^rgb\((\d{1,3}), ?(\d{1,3}), ?(\d{1,3})\)$/;
 		m = r.exec(str);
@@ -1744,7 +1744,7 @@ CDE.extend({ <!--
 				(m[2]%256 < 16?'0':'')+(parseInt(m[2], 10)%256).toString(16) +
 				(m[3]%256 < 16?'0':'')+(parseInt(m[3], 10)%256).toString(16);
 		}
-	
+
 		// rgba(xxx, xxx, xxx, 0.xxx) (with alpha, as decimal 0..1)
 		// lots of non-capturing groups, but for alpha i only want to accept 1 or 0 or 0.d*
 		r = /^rgba\((\d{1,3}), ?(\d{1,3}), ?(\d{1,3}), ?(?:1|(?:0(?:\.\d*)))\)$/;
@@ -1755,7 +1755,7 @@ CDE.extend({ <!--
 				(m[2]%256 < 16?'0':'')+(parseInt(m[2], 10)%256).toString(16) +
 				(m[3]%256 < 16?'0':'')+(parseInt(m[3], 10)%256).toString(16);
 		}
-	
+
 		// named color (common)
 		obj = {
 			black:'000000',
@@ -1776,9 +1776,9 @@ CDE.extend({ <!--
 			yellow:'ffff00'
 		};
 		if (obj[str]) return hash+obj[str];
-	
+
 	/*
-		// http://www.w3schools.com/html/html_colornames.asp	
+		// http://www.w3schools.com/html/html_colornames.asp
 		var obj = {
 			aliceblue:'#f0f8ff',
 			antiquewhite:'#faebd7',
@@ -1923,15 +1923,15 @@ CDE.extend({ <!--
 		}
 		if (obj[str]) return obj[str];
 	*/
-	
+
 		return hash+'ffffff';
 	},
-	
+
 	/**
 	 * Get a color, normalize it, and return the rgb colors
 	 * Unless three parameters are given, in that case return a hex color with those rgb values... (yes, confusing, but whatever)
 	 * If not and the first parameter is a number, bitwise operators are used to extract r, g and b :)
-	
+
 	 debug(CDE.rgb('#abc'));
 	 debug(CDE.rgb('abc'));
 	 debug(CDE.rgb('#aabbcc'));
@@ -1940,7 +1940,7 @@ CDE.extend({ <!--
 	 debug(CDE.rgb('11aabbcc'));
 	 debug(CDE.rgb('rgb(100,200,256)'));
 	 debug(CDE.rgb('rgb(100,200,13)'));
-	
+
 	 * @param string color Either: string:the [#]r[r]g[g]b[b] color, number: if g and b are numbers this is r, else this contains all three (use binary operators to extract them)
 	 * @param int g=false
 	 * @param int b=false
@@ -1958,31 +1958,31 @@ CDE.extend({ <!--
 			return CDE.color((color>>16)&255, (color>>8)&255, color&255, noHash);
 		}
 
-		
+
 		// normalize color to rrggbb
 		color = CDE.color(color, true);
 		return {
-			r: parseInt(color.substring(0,2), 16), 
-			g: parseInt(color.substring(2,4), 16), 
+			r: parseInt(color.substring(0,2), 16),
+			g: parseInt(color.substring(2,4), 16),
 			b: parseInt(color.substring(4,6), 16)
 		};
 	}
-	
+
 });
 
 // ################################
 // #     Set/get atr methods      #
 // ################################
 
-CDE.proto({ <!--
+CDE.proto({
 
 	/**
 	 * Sets innerHTML to str
-	 * If no argument is given, the current value of innerHTML is 
-	 * returned (Warning, this can give different results, depending 
+	 * If no argument is given, the current value of innerHTML is
+	 * returned (Warning, this can give different results, depending
 	 * on your browser. take care with html-entities).
 	 * Note: every time you read innerHTML, it has to deserialize the
-	 * entire dom starting at <this> element. It will do this every 
+	 * entire dom starting at <this> element. It will do this every
 	 * time you read from it and it's (relatively) slowww.
 	 * @param string str=undefined When no argument is passed on, the current innerHTML is returned.
 	 * @param bool boolAppend=false Append the string to innerHTML rather than replacing it
@@ -1997,7 +1997,7 @@ CDE.proto({ <!--
 		else this.dom().innerHTML = str;
 		return this;
 	},
-	
+
 	/**
 	 * @depricated in favor of CDE.prototype.html
 	 */
@@ -2010,7 +2010,7 @@ CDE.proto({ <!--
 		else this.dom().innerHTML = str;
 		return this;
 	},
-	
+
 	/**
 	 * Add a textnode (does not clear parent, adds document.createTextNode, unless specified otherwise).
 	 * If this is a stylesheet, the text can only be replaced
@@ -2032,14 +2032,14 @@ CDE.proto({ <!--
 			dom = document.createTextNode(str);
 			// clear if requested
 			if (boolClear) this.empty();
-			
+
 			// actually pend node
 			if (boolPrepend) this.dom().insertBefore(dom, this.dom().firstChild);
 			else this.add(dom);
 		}
 		return this;
 	},
-	
+
 	/**
 	 * @depricated in favor of CDE.prototype.text
 	 */
@@ -2047,7 +2047,7 @@ CDE.proto({ <!--
 		if (window.debug) debug("CDE.txtn: depricated in favor of CDE.text");
 		return this.text(str);
 	},
-	
+
 	/**
 	 * Set or get the text value of this element. Used on input elements.
 	 * When no argument is supplied, the current value is returned (and unchanged)
@@ -2059,7 +2059,7 @@ CDE.proto({ <!--
 		if (arguments.length == 0) return this.dom().value;
 		return this.atr('value', str);
 	},
-	
+
 	/**
 	 * Either return the value of the selected index of a select input or, if argument is supplied, set or unset the selected state based on the parameter.
 	 * Note: this should be a select input if no argument is passed on. It should be an option element if the parameter is supplied.
@@ -2078,7 +2078,7 @@ CDE.proto({ <!--
 		// select this option element and return `this`
 		return this.atr('selected', boolState);
 	},
-	
+
 	/**
 	 * Set this.checked to the value of bool. If no argument, return the current value instead.
 	 * @param bool bool=undefined
@@ -2089,7 +2089,7 @@ CDE.proto({ <!--
 		if (arguments.length == 0) return this.dom().checked;
 		return this.atr('checked', !!bool);
 	},
-	
+
 	/**
 	 * Change the id (and name) of the element. When no argument is given, the current id is returned instead.
 	 * @param str strId=undefined
@@ -2099,7 +2099,7 @@ CDE.proto({ <!--
 		if (arguments.length == 0) return this.dom().id;
 		return this.atr('id',strId);
 	},
-	
+
 	/**
 	 * Set the name of this element
 	 * Mostly used for radio buttons in the context of CDE, or to style
@@ -2112,7 +2112,7 @@ CDE.proto({ <!--
 		if (arguments.length == 0) return this.dom().name;
 		return this.atr('name', strName);
 	},
-	
+
 	/**
 	* Set or get the src attribute of this element
 	* @param string str If given, the value is changed, otherwise the current value is returned
@@ -2128,8 +2128,8 @@ CDE.proto({ <!--
 
 // common macro's
 
-CDE.proto({ <!--
-	
+CDE.proto({
+
 	/**
 	 * Fade the element out and remove it from dom after the fade completes...
 	 * Note that any callback supplied through the options are overwritten,
@@ -2145,7 +2145,7 @@ CDE.proto({ <!--
 		options.callback = cb;
 		return this.ease({opacity: 0}, options);
 	},
-	
+
 	/**
 	 * Same as fadeDel except it also removes it and its childeren from cache
 	 * @param function cb=false Callback executed after del
@@ -2157,7 +2157,7 @@ CDE.proto({ <!--
 		options.boolAfterEaseUncacheCompletely = true;
 		return this.fadeDel(cb, options);
 	},
-	
+
 	/**
 	 * Simple map to ease for fading an element in
 	 * @param function=false func callback after fadein
@@ -2170,7 +2170,7 @@ CDE.proto({ <!--
 		if (func) options.callback = func;
 		return this.ease({opacity: max||1},options);
 	},
-	
+
 	/**
 	 * Simple map to ease for fading an element out
 	 * @param function=false func callback after fadein
@@ -2183,7 +2183,7 @@ CDE.proto({ <!--
 		if (func) options.callback = func;
 		return this.ease({opacity: min>0?min:0},options);
 	},
-	
+
 	/**
 	 * Set opacity to zero, add to body, center and fade in.
 	 * It's a common thing to do for popups.
@@ -2196,7 +2196,7 @@ CDE.proto({ <!--
 	centerFade: function(options, max, centerHor, centerVert){
 		return this.o(0).dba().center(centerHor, centerVert).fadeIn(false,options, max);
 	},
-	
+
 	/**
 	 * Add this to given element, set opacity to 0 before doing so and
 	 * fade the element in afterwards. Just a shorthand for those steps.
@@ -2207,14 +2207,14 @@ CDE.proto({ <!--
 	addToFading: function(cde, options, max){ // .o(0).addTo(cde).fadeIn()
 		return this.o(0).addTo(cde).fadeIn(false, options, max);
 	},
-	
+
 	/**
 	 * NoSelection
-	 * Attempt to prevent selection of the text. Not really usefull for blocking 
+	 * Attempt to prevent selection of the text. Not really usefull for blocking
 	 * text-grabbing (although it'll work for non-techies, i guess), but it is
 	 * usefull in GUI design for JS buttons or dragging, because selecting stuff
 	 * is uuuuugley.
-	 * Note that the DOM level 1 events onselectstart, ondragstart and 
+	 * Note that the DOM level 1 events onselectstart, ondragstart and
 	 * onmousedown are replaced by return false functions.
 	 * @return CDE <this>
 	 */
@@ -2223,15 +2223,15 @@ CDE.proto({ <!--
 		// in case this method gets called multiple times on the same object
 		// the method would otherwise insert multiple listeners for the exact
 		// same effect... quite pointless. The dangers in 'overwriting' the
-		// DOM level 1 event selectstart is quite non-existent, me thinks. 
-		// onmousedown could possibly be more dangerous, but when you use 
+		// DOM level 1 event selectstart is quite non-existent, me thinks.
+		// onmousedown could possibly be more dangerous, but when you use
 		// .on for the other events, this remains harmless.
 		this.dom().onmousedown = function(){return false;}; // o
 		this.dom().onselectstart = function(){return false;}; // ie
 		this.dom().ondragstart = function(){return false;}; // ie
 		return this.css({MozUserSelect: 'none'}); // fx
 	},
-	
+
 	/**
 	 * Center this element in the viewport.
 	 * This sets the element absolute... Unless both parameters are true, then nothing happens.
@@ -2250,7 +2250,7 @@ CDE.proto({ <!--
 		if (!boolNotVer) this.y(Math.round((cp.y+(vp.h/2))-(pos.h/2)));
 		return this;
 	},
-	
+
 	/**
 	 * Allow an element to be dragged around...
 	 * If you dont supply a parent, body will be used instead (usually safe, but body might not be 100% high/wide).
@@ -2301,7 +2301,7 @@ CDE.proto({ <!--
 			return CDE.stopEvent(evt);
 		}, parent);
 		// if not yet set up, set up the generic drag/up events for the parent
-	
+
 		if (!parent.dom()._boolDraggable) {
 			// add move and up events (once)
 			CDE(parent).on('mousemove', function(evt, x, y){
@@ -2326,7 +2326,7 @@ CDE.proto({ <!--
 				if (!options.boolNoMove) CDE.move.cdeToMove.xy(tx+(options.intOffsetX||0)+"px", ty+(options.intOffsetY||0)+"px");
 				// call custom callback
 				if (CDE.move.ondrag) CDE.move.ondrag.call(CDE.move.cde, x,y,dx,dy,tx,ty);
-				
+
 				return CDE.stopEvent(evt);
 			}, parent).on('mouseup', function(evt,x,y){
 				// if this doesnt exist, we're not dragging
@@ -2338,14 +2338,14 @@ CDE.proto({ <!--
 				if (CDE.move.onstop) CDE.move.onstop.call(CDE.move.cde, x, y);
 				// release the information...
 				CDE.move = false;
-	
+
 				return CDE.stopEvent(evt);
 			}, parent);
-			
+
 			// mark this element as being set up for dragging
 			parent.dom()._boolDraggable = true;
 		}
-		
+
 		return this;
 	}
 
@@ -2412,7 +2412,7 @@ CDE(window).on('unload', CDE._unload);
 // the core, make sure you do it BEFORE this file...
 if (!CDE) window.CDE = {};
 
-(function(){<!--
+(function(){
 
 var _send, // generic send function, used by both get and post
 		_getXhr, // generic XHR object factory
@@ -2438,7 +2438,7 @@ var _send, // generic send function, used by both get and post
  */
 _send = function(boolGet, strUrl, funcCallback, strData, objOptions){
 	if (!strUrl) return (window.debug||xdebug)("Ajax._send: No url found...");
-	
+
 	// prevent caching, unless you dont want to
 	if (!objOptions.boolNoAntiCache) strUrl = _antiCache(strUrl);
 	// show the url, unless prevented
@@ -2454,20 +2454,20 @@ _send = function(boolGet, strUrl, funcCallback, strData, objOptions){
 
 	xhr.open(boolGet?"GET":"POST", strUrl, !objOptions.boolBlocking);
 	xhr.setRequestHeader("Connection", "close"); // prevent IE7 problem
-	
+
 	if (boolGet) {
 		xhr.send(null); // GET's have no payload
 	} else {
 		// empty is empty
 		if (typeof strData == 'undefined') strData = '';
 		// POST's need some extra parameters...
-		xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded;"); 
+		xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded;");
 		xhr.setRequestHeader("Content-length", strData.length);
 		//if (!objOptions.boolNoAntiCachePost) xhr.setRequestHeader("Pragma", "no-cache");
 		//else xhr.setRequestHeader("Pragma", "cache");
 		//if (!objOptions.boolNoAntiCachePost) xhr.setRequestHeader("Cache-Control", "no-cache");
 		//else xhr.setRequestHeader("Cache-Control", "cache");
-		
+
 		xhr.send(strData);
 	}
 };
@@ -2498,7 +2498,7 @@ _getXhr = function(callback, boolReturnXML){
 					if (boolReturnXML) callback(xhr.responseXML, xhr.responseText);
 					else callback(xhr.responseText);
 				}
-			} 
+			}
 			else {
 				throw("File request problem (code: "+xhr.status+")!"); // most likely file not found...
 			}
@@ -2522,7 +2522,7 @@ _getXhr = function(callback, boolReturnXML){
 _antiCache = function(strUrl){
 	// "random" string (unixtime, surprised?)
 	var q,r = (new Date()).getTime();
-	
+
 	if (strUrl.indexOf('?') >= 0) {
 		// if questionmark is suffixed, no need to append anything else
 		q = (strUrl.indexOf('?') != (strUrl.length-1));
@@ -2560,7 +2560,7 @@ _toPostdata = function(obj, boolAny, n){
 		}
 		return s;
 	}
-	
+
 	if (obj === undefined) return 'undefined';
 	if (obj === null) return 'null';
 	return obj.toString().replace(/%/g,'%25').replace(/&/g,'%26');
@@ -2618,7 +2618,7 @@ CDE.post = function(strUrl, objData, funcCallback, objOptions){ // boolNoConvert
 
 // positional methods
 
-CDE.proto({ <!--
+CDE.proto({
 
 	/**
 	 * Set position to absolute and map the args to .x(x).y(y).w(w).h(h)
@@ -2632,7 +2632,7 @@ CDE.proto({ <!--
 	abs: function(x, y, w, h){ // position: absolute; left: left; top: top; width: width; height: height;
 		return this.css({position: 'absolute'}).x(x).y(y).w(w).h(h);
 	},
-	
+
 	/**
 	 * Set position:relative
 	 * You need this to get absolute positioned childs to be positioned relative to their parent, if parents are not abs.
@@ -2645,9 +2645,9 @@ CDE.proto({ <!--
 	rel: function(x, y, w, h){ // position: relative
 		return this.css('position', 'relative').x(x).y(y).w(w).h(h);
 	},
-	
+
 	/**
-	 * Set width and height for element. Maps to this.w(w).h(h); 
+	 * Set width and height for element. Maps to this.w(w).h(h);
 	 * If parameters are numbers, 'px' is appended to them. Undefined/false parameters are not changed.
 	 * @param mix width
 	 * @param mix height
@@ -2656,7 +2656,7 @@ CDE.proto({ <!--
 	wh: function(w, h){ // width/height
 		return this.w(w).h(h);
 	},
-	
+
 	/**
 	 * Set width of element in px
 	 * If parameter is number, 'px' is appended to it. If undefined/false paramete, nothing changes.
@@ -2667,7 +2667,7 @@ CDE.proto({ <!--
 		if (typeof(w) !== 'undefined' && w !== false) this.css('width', w+(typeof w == 'number'?'px':''));
 		return this;
 	},
-	
+
 	/**
 	 * Set height of element in px
 	 * If parameter is number, 'px' is appended to it. If undefined/false paramete, nothing changes.
@@ -2678,7 +2678,7 @@ CDE.proto({ <!--
 		if (typeof(h) !== 'undefined' && h !== false) this.css('height', h+(typeof h == 'number'?'px':''));
 		return this;
 	},
-	
+
 	/**
 	 * Map to this.x(x).y(y)
 	 * If parameters are numbers, 'px' is appended to them. Undefined/false parameters are not changed.
@@ -2689,7 +2689,7 @@ CDE.proto({ <!--
 	xy: function(x,y){ // left, top
 		return this.x(x).y(y);
 	},
-	
+
 	/**
 	 * Set left of element. If x is negative and a number, right is set instead. If x is undefined or false, nothing changes.
 	 * If parameter is number, 'px' is appended to it. If undefined/false paramete, nothing changes.
@@ -2701,9 +2701,9 @@ CDE.proto({ <!--
 		if (typeof(x) != 'undefined' && x !== false) this.css('left',x+((typeof x == 'number')?'px':''));
 		return this;
 	},
-	
+
 	/**
-	 * Set top of element. If y is negative, bottom is set instead. 
+	 * Set top of element. If y is negative, bottom is set instead.
 	 * If parameter is number, 'px' is appended to it. If undefined/false paramete, nothing changes.
 	 * @param int y
 	 * @return CDE <this>
@@ -2711,11 +2711,11 @@ CDE.proto({ <!--
 	y: function(y){ // top
 		if (typeof(y) == 'number' && y < 0) return this.b(-y);
 		if (typeof(y) != 'undefined' && y !== false) this.css('top',y+((typeof y == 'number')?'px':''));
-		return this; 
+		return this;
 	},
-	
+
 	/**
-	 * Set right. If negative, left is set instead. 
+	 * Set right. If negative, left is set instead.
 	 * If parameter is number, 'px' is appended to it. If undefined/false paramete, nothing changes.
 	 * @param mix r
 	 * @return CDE <this>
@@ -2725,7 +2725,7 @@ CDE.proto({ <!--
 		if (typeof(r) != 'undefined' && r !== false) this.css('right',r+((typeof r == 'number')?'px':''));
 		return this;
 	},
-	
+
 	/**
 	 * Set bottom. If negative, top is set instead.
 	 * If parameter is number, 'px' is appended to it. If undefined/false paramete, nothing changes.
@@ -2742,8 +2742,8 @@ CDE.proto({ <!--
 
 // other css methods
 
-CDE.proto({ <!--
-	
+CDE.proto({
+
 	/**
 	 * Set the background of this element. Optionally set repeat and position
 	 * @param string strUrl Path to image (doh)
@@ -2758,7 +2758,7 @@ CDE.proto({ <!--
 		if (arguments.length >= 2) obj.backgroundPosition = (intPosX||0)+'px '+(intPosY||0)+'px';
 		return this.css(obj);
 	},
-	
+
 	/**
 	* Set the background-position property. Requires (and updates) both parameters...
 	* @param int intPosX
@@ -2768,7 +2768,7 @@ CDE.proto({ <!--
 	bgpos: function(intPosX, intPosY){
 		return this.css('backgroundPosition', '-'+(intPosX||0)+'px -'+(intPosY||0)+'px');
 	},
-	
+
 	/**
 	 * Create a sprite image.
 	 * Take the image, put it as background and move it to the correct position.
@@ -2784,7 +2784,7 @@ CDE.proto({ <!--
 	sprite: function(sprite, x, y){
 		return this.bg(sprite, 'no-repeat', -x||0, -y||0);
 	},
-	
+
 	/**
 	 * This function changes a sprite created with CDE.sprite
 	 * @param int x Position of target image in sprite
@@ -2798,16 +2798,16 @@ CDE.proto({ <!--
 	spriteTo: function(x, y, tw, th, ow, oh){
 		//debug('spriteto('+x+","+y+","+tw+","+th+","+ow+","+oh+")");
 		var w,h, dw,dh, img, dom;
-		
+
 		// get the current image of the sprite (should only be one)
 		dom = this.dom().getElementsByTagName('img')[0];
-	
+
 		// get the (by now cached) image to get the width/height (impossible from dom)
 		img = new Image();
 		img.src = dom.src;
-		
+
 		// rest is basically same as in CDE.sprite....
-	
+
 		// scale factor
 		dw = tw/ow;
 		dh = th/oh;
@@ -2817,14 +2817,14 @@ CDE.proto({ <!--
 		// new coordinate location (of the inside image that shows the sprite!)
 		x *= dw;
 		y *= dh;
-		
+
 		//debug("result: "+x+","+y+","+w+","+h);
-	
+
 		// change the position and size of the shown image...
 		// ~~ is same as Math.round
 		CDE(dom).abs(-(~~x)+'px',-(~~y)+'px',~~w,~~h);
 	},
-	
+
 	/**
 	 * Set the background-color for this element
 	 * @param string strColor html-color
@@ -2833,7 +2833,7 @@ CDE.proto({ <!--
 	bgc: function(strColor){ // background-color
 		return this.css('backgroundColor', strColor);
 	},
-	
+
 	/**
 	 * @depricated in favor of .fwb
 	 */
@@ -2841,7 +2841,7 @@ CDE.proto({ <!--
 		if (window.debug) debug("cde.bold is depricated. Please use cde.fwb");
 		return this.css('fontWeight', 'bolder');
 	},
-	
+
 	/**
 	 * @depricated in favor of .fwn
 	 */
@@ -2849,7 +2849,7 @@ CDE.proto({ <!--
 		if (window.debug) debug("cde.unbold is depricated. Please use cde.fwn");
 		return this.css('fontWeight', 'normal');
 	},
-	
+
 	/**
 	 * Set border: 1px solid <strColor>
 	 * @param string strColor='black' HTML color
@@ -2860,7 +2860,7 @@ CDE.proto({ <!--
 	sb: function(strColor, px, style){ // border: 1px solid
 		return this._setBorder('', (px||1), strColor||'black', style||'solid');
 	},
-	
+
 	/**
 	 * Set border bottom. Undefined parameters are skipped. False parameters are defaulted (1,black,sold).
 	 * @param mix w=undefined Width
@@ -2871,7 +2871,7 @@ CDE.proto({ <!--
 	bb: function(w, c, s){
 		return this._setBorder('Bottom', w, c, s);
 	},
-	
+
 	/**
 	 * Set border left. Undefined parameters are skipped. False parameters are defaulted (1,black,sold).
 	 * @param mix w=undefined Width
@@ -2882,7 +2882,7 @@ CDE.proto({ <!--
 	bl: function(w, c, s){
 		return this._setBorder('Left', w, c, s);
 	},
-	
+
 	/**
 	 * Set border right. Undefined parameters are skipped. False parameters are defaulted (1,black,sold).
 	 * @param mix w=undefined Width
@@ -2893,7 +2893,7 @@ CDE.proto({ <!--
 	br: function(w, c, s){
 		return this._setBorder('Right', w, c, s);
 	},
-	
+
 	/**
 	 * Set border top. Undefined parameters are skipped. False parameters are defaulted (1,black,sold).
 	 * @param mix w=undefined Width
@@ -2904,7 +2904,7 @@ CDE.proto({ <!--
 	bt: function(w, c, s){
 		return this._setBorder('Top', w, c, s);
 	},
-	
+
 	/**
 	 * Set the border on one edge. Undefined parameters are skipped. False parameters are defaulted (1,black,sold).
 	 * @param string d Direction (Top, Right, Bottom, Left), first char uppercase
@@ -2922,12 +2922,12 @@ CDE.proto({ <!--
 		if (typeof s != 'undefined') this.css('border'+d+'Style', s);
 		return this;
 	},
-	
+
 	/**
 	 * Set the border of the element to a button or input
 	 * type of border. One achieves this by setting the
 	 * top and left borders to something light and bottom
-	 * and right borders to something dark. This causes a 
+	 * and right borders to something dark. This causes a
 	 * shadow effect causing the element itself to appear
 	 * higher. If you turn the colors around, the element
 	 * will appear to be deeper than its surroundings.
@@ -2939,7 +2939,7 @@ CDE.proto({ <!--
 	b3d: function(strColorTopLeft, strColorBottomRight, px){ // border: 1px solid <color1>, border-right: 1px solid <color2>, border-bottom: 1px solid <color2>
 		return this.sb(strColorTopLeft, px).css({borderRight: (px||1)+'px solid '+strColorBottomRight, borderBottom: (px||1)+'px solid '+strColorBottomRight});
 	},
-	
+
 	/**
 	 * Set text color
 	 * @param string str The color
@@ -2948,7 +2948,7 @@ CDE.proto({ <!--
 	c: function(str){ // color
 		return this.css('color',str);
 	},
-	
+
 	/**
 	 * Set clear: left
 	 * @return CDE <this>
@@ -2956,7 +2956,7 @@ CDE.proto({ <!--
 	cl: function(){ // clear: left
 		return this.css('clear', 'left');
 	},
-	
+
 	/**
 	 * Set clear: right
 	 * @return CDE <this>
@@ -2964,7 +2964,7 @@ CDE.proto({ <!--
 	cr: function(){ // clear: right
 		return this.css('clear', 'right');
 	},
-	
+
 	/**
 	 * Set clear: both
 	 * @return CDE <this>
@@ -2972,7 +2972,7 @@ CDE.proto({ <!--
 	cb: function(){ // clear: both
 		return this.css('clear', 'both');
 	},
-	
+
 	/**
 	 * Set cursor:cross
 	 * @return CDE <this>
@@ -2980,7 +2980,7 @@ CDE.proto({ <!--
 	cc: function(){ // cursor:cross
 		return this.css('cursor', 'crosshair');
 	},
-	
+
 	/**
 	 * Set cursor:default
 	 * @return CDE <this>
@@ -2988,7 +2988,7 @@ CDE.proto({ <!--
 	cd: function(){ // cursor:default
 		return this.css('cursor', 'default');
 	},
-	
+
 	/**
 	 * Set cursor:pointer
 	 * @return CDE <this>
@@ -2996,7 +2996,7 @@ CDE.proto({ <!--
 	cp: function(){ // cursor:pointer
 		return this.css('cursor', 'pointer');
 	},
-	
+
 	/**
 	 * Set cursor:move
 	 * @return CDE <this>
@@ -3004,7 +3004,7 @@ CDE.proto({ <!--
 	cm: function(){ // cursor: move
 		return this.css('cursor', 'move');
 	},
-	
+
 	/**
 	 * Set display: none
 	 * @return CDE <this>
@@ -3012,7 +3012,7 @@ CDE.proto({ <!--
 	dn: function(){ // display: none
 		return this.css('display', 'none');
 	},
-	
+
 	/**
 	 * Set display: inline
 	 * @return CDE <this>
@@ -3020,7 +3020,7 @@ CDE.proto({ <!--
 	di: function(){ // display: inline
 		return this.css('display', 'inline');
 	},
-	
+
 	/**
 	 * Set display: block
 	 * @return CDE <this>
@@ -3028,7 +3028,7 @@ CDE.proto({ <!--
 	db: function(){ // display: block
 		return this.css('display', 'block');
 	},
-	
+
 	/**
 	 * Float left (ie version is caught and fixed at css())
 	 * @return CDE <this>
@@ -3036,7 +3036,7 @@ CDE.proto({ <!--
 	fl: function(){ // float:left
 		return this.css('cssFloat', 'left');
 	},
-	
+
 	/**
 	 * Float right (ie version is caught and fixed at css())
 	 * @return CDE <this>
@@ -3044,7 +3044,7 @@ CDE.proto({ <!--
 	fr: function(){ // float:right
 		return this.css('cssFloat', 'right');
 	},
-	
+
 	/**
 	 * Set font family
 	 * @return CDE <this>
@@ -3052,7 +3052,7 @@ CDE.proto({ <!--
 	ff: function(f){ // font-family: f
 		return this.css('fontFamily', f);
 	},
-	
+
 	/**
 	 * Set font size in px
 	 * @param int px=1
@@ -3061,7 +3061,7 @@ CDE.proto({ <!--
 	fs: function(px){ // font-size
 		return this.css('fontSize', (px||1)+'px');
 	},
-	
+
 	/**
 	 * Set text bold
 	 * @return CDE <this>
@@ -3069,7 +3069,7 @@ CDE.proto({ <!--
 	fwb: function(){ // font-weight: bold
 		return this.css('fontWeight', 'bolder');
 	},
-	
+
 	/**
 	 * The inverse of fwb()
 	 * @return CDE <this>
@@ -3077,7 +3077,7 @@ CDE.proto({ <!--
 	fwn: function(){ // font-weight: normal
 		return this.css('fontWeight', 'normal');
 	},
-	
+
 	/**
 	 * Create a hover effect by applying the on styles onmouseover and the offstyle onmouseout
 	 * @param obj on An objlit containing the styles to assign on mouseover
@@ -3088,7 +3088,7 @@ CDE.proto({ <!--
 		var that = this;
 		return CDE.on('mouseover', function(){ that.css(on); }).on('mouseout', function(){ that.css(off); });
 	},
-	
+
 	/**
 	 * Set line-height
 	 * @param int px=1 Line-height in px
@@ -3097,17 +3097,17 @@ CDE.proto({ <!--
 	lh: function(px){ // line-height
 		return this.css('lineHeight', (px||1)+'px');
 	},
-	
+
 	/**
 	 * Set margin to all sides, in px. If string, px is not appended.
-	 * 
+	 *
 	 * @param int|string px
 	 * @return CDE <this>
 	 */
 	m: function(px){ // margin
 		return this.css('margin', px+(typeof px == 'number'?'px':''));
 	},
-	
+
 	/**
 	 * Set margin-top
 	 * @param int px
@@ -3116,7 +3116,7 @@ CDE.proto({ <!--
 	mt: function(px){ // margin-top
 		return this.css('marginTop', px+(typeof px!='string'?'px':''));
 	},
-	
+
 	/**
 	 * Set margin-right
 	 * @param int px
@@ -3125,7 +3125,7 @@ CDE.proto({ <!--
 	mr: function(px){ // margin-right
 		return this.css('marginRight', px+(typeof px!='string'?'px':''));
 	},
-	
+
 	/**
 	 * Set margin-bottom
 	 * @param int px
@@ -3134,7 +3134,7 @@ CDE.proto({ <!--
 	mb: function(px){ // margin-bottom
 		return this.css('marginBottom', px+(typeof px!='string'?'px':''));
 	},
-	
+
 	/**
 	 * Set margin-left
 	 * @param int px
@@ -3152,7 +3152,7 @@ CDE.proto({ <!--
 	minw: function(px){ // min-width
 		return this.css('minWidth',px+(typeof px=='number'?"px":''));
 	},
-	
+
 	/**
 	 * Set min-height
 	 * @param int px
@@ -3187,7 +3187,7 @@ CDE.proto({ <!--
 	o: function(value){ // opacity: value
 		return this.css('opacity', value);
 	},
-	
+
 	/**
 	 * Set overflow:auto
 	 * @return CDE <this>
@@ -3195,7 +3195,7 @@ CDE.proto({ <!--
 	oa: function(){ // overflow: auto
 		return this.css('overflow','auto');
 	},
-	
+
 	/**
 	 * Set overflow hidden
 	 * @return CDE <this>
@@ -3203,7 +3203,7 @@ CDE.proto({ <!--
 	oh: function(){ // overflow: hidden
 		return this.css('overflow', 'hidden');
 	},
-	
+
 	/**
 	 * Set overflow visible
 	 * @return CDE <this>
@@ -3211,17 +3211,17 @@ CDE.proto({ <!--
 	ov: function(){ // overflow: visible
 		return this.css('overflow', 'visible');
 	},
-	
+
 	/**
 	 * Set padding to all sides, in px. If string, px is not appended.
-	 * 
+	 *
 	 * @param int|string px
 	 * @return CDE <this>
 	 */
 	p: function(px){ // padding
 		return this.css('padding', px+(typeof px == 'number'?'px':''));
 	},
-	
+
 	/**
 	 * Set padding-top
 	 * @param int px
@@ -3230,7 +3230,7 @@ CDE.proto({ <!--
 	pt: function(px){ // padding-top
 		return this.css('paddingTop', px+(typeof px!='string'?'px':''));
 	},
-	
+
 	/**
 	 * Set padding-right
 	 * @param int px
@@ -3239,7 +3239,7 @@ CDE.proto({ <!--
 	pr: function(px){ // padding-right
 		return this.css('paddingRight', px+(typeof px!='string'?'px':''));
 	},
-	
+
 	/**
 	 * Set padding-bottom
 	 * @param int px
@@ -3248,7 +3248,7 @@ CDE.proto({ <!--
 	pb: function(px){ // padding-bottom
 		return this.css('paddingBottom', px+(typeof px!='string'?'px':''));
 	},
-	
+
 	/**
 	 * Set padding-left
 	 * @param int px
@@ -3257,7 +3257,7 @@ CDE.proto({ <!--
 	pl: function(px){ // padding-left
 		return this.css('paddingLeft', px+(typeof px!='string'?'px':''));
 	},
-	
+
 	/**
 	 * Causes a strike through-ed text effect. Replaces the current text-decoration (for now).
 	 * @todo Make it add this setting, rather than replace the current setting.
@@ -3267,7 +3267,7 @@ CDE.proto({ <!--
 	strike: function(){ // text-decoration: line-through
 		return this.css('textDecoration', 'line-through');
 	},
-	
+
 	/**
 	 * Set text-align: center
 	 * @return CDE <this>
@@ -3275,7 +3275,7 @@ CDE.proto({ <!--
 	tac: function(){ // text-align: center
 		return this.css('textAlign', 'center');
 	},
-	
+
 	/**
 	 * Set text-align: left
 	 * @return CDE <this>
@@ -3283,7 +3283,7 @@ CDE.proto({ <!--
 	tal: function(){ // text-align: left
 		return this.css('textAlign', 'left');
 	},
-	
+
 	/**
 	 * Set text-align: right
 	 * @return CDE <this>
@@ -3291,7 +3291,7 @@ CDE.proto({ <!--
 	tar: function(){ // text-align: right
 		return this.css('textAlign', 'right');
 	},
-	
+
 	/**
 	 * Set text-align: justify
 	 * @return CDE <this>
@@ -3299,7 +3299,7 @@ CDE.proto({ <!--
 	taj: function(){ // text-align: justify
 		return this.css('textAlign', 'justify');
 	},
-	
+
 	/**
 	 * Set text-decoration to none
 	 * @return cde <this>
@@ -3307,7 +3307,7 @@ CDE.proto({ <!--
 	tdn: function(){ // text-decoration: none;
 		return this.css('textDecoration','none');
 	},
-	
+
 	/**
 	 * Set visibility to hidden
 	 * @return CDE <this>
@@ -3315,7 +3315,7 @@ CDE.proto({ <!--
 	vh: function(){ // visibility: hidden
 		return this.css('visibility', 'hidden');
 	},
-	
+
 	/**
 	 * Set visibility to visible
 	 * @return CDE <this>
@@ -3323,7 +3323,7 @@ CDE.proto({ <!--
 	vv: function(){ // visibility: visible
 		return this.css('visibility', 'visible');
 	},
-	
+
 	/**
 	 * Set vertical align to middle
 	 * @return CDE <this>
@@ -3331,7 +3331,7 @@ CDE.proto({ <!--
 	vam: function(){ // vertical-align: middle
 		return this.css('verticalAlign', 'middle');
 	},
-	
+
 	/**
 	 * Set white-space to normal
 	 * @return cde <this>
@@ -3339,7 +3339,7 @@ CDE.proto({ <!--
 	wsn: function(){ // default
 		return this.css('whiteSpace', 'normal');
 	},
-	
+
 	/**
 	 * Set white-space to nowrap
 	 * @return cde <this>
@@ -3347,7 +3347,7 @@ CDE.proto({ <!--
 	wsnw: function(){ // white-space: nowrap (pre without ws)
 		return this.css('whiteSpace', 'nowrap');
 	},
-	
+
 	/**
 	 * Set white-space to pre
 	 * @return cde <this>
@@ -3355,7 +3355,7 @@ CDE.proto({ <!--
 	wsp: function(){ // white-space: pre (<pre>)
 		return this.css('whiteSpace', 'pre');
 	},
-	
+
 	/**
 	 * Set white-space to pre-line
 	 * @return cde <this>
@@ -3363,7 +3363,7 @@ CDE.proto({ <!--
 	wspl: function(){ // white-space: pre-line (also break on \n)
 		return this.css('whiteSpace', 'pre-line');
 	},
-	
+
 	/**
 	 * Set white-space to pre-wrap
 	 * @return cde <this>
@@ -3371,18 +3371,18 @@ CDE.proto({ <!--
 	wspw: function(){ // pre with wrapping
 		return this.css('whiteSpace', 'pre-wrap');
 	},
-	
+
 	/**
 	 * Set z-index
 	 * @param int z
 	 * @return CDE <this>
 	 */
-	z: function(z){ // z-index 
+	z: function(z){ // z-index
 		return this.css('zIndex', z);
 	}
 
 });
-CDE.extend({ <!--
+CDE.extend({
 
 	/**
 	 * Add div to clear left floating elements
@@ -3418,13 +3418,13 @@ CDE.extend({ <!--
 // #        Auxiliary methods        #
 // ###################################
 
-CDE.extend({ <!--
-	
+CDE.extend({
+
 	/**
-	 * Return an object literal with the width and height of the document 
-	 * (not the window, not the browser, not the viewport but the entire 
+	 * Return an object literal with the width and height of the document
+	 * (not the window, not the browser, not the viewport but the entire
 	 * document including the parts hidden by scrollbars)
-	 * @see http://unixpapa.com/js/mouse.html for some 
+	 * @see http://unixpapa.com/js/mouse.html for some
 	 *
 	 * @return {w:int, h:int}
 	 */
@@ -3434,7 +3434,7 @@ CDE.extend({ <!--
 			h: document.documentElement.scrollHeight
 		};
 	},
-	
+
 	/**
 	 * Return the size of the viewport (the actual content area of the browser, not hidden by scrollbars).
 	 * See CDE.docSize for total area of content area
@@ -3455,7 +3455,7 @@ CDE.extend({ <!--
 		}
 		return size;
 	},
-	
+
 	/**
 	 * Get the scroll position of the browser
 	 * @return {x:int,y:int}
@@ -3477,7 +3477,7 @@ CDE.extend({ <!--
 	  }
 	  return pos;
 	},
-	
+
 	/**
 	 * Disable the page.
 	 * Puts a black semi-transparent div over the entire document.
@@ -3498,7 +3498,7 @@ CDE.extend({ <!--
 		//return CDE.div().css({zIndex:z||1000,backgroundColor:'black',position:'absolute',left:0,top:0,width:size.w+'px',height:size.h+'px',opacity:trans||0.5}).atr('id',id);
 		return CDE.div().z(z||1000).bgc('black').id(id).abs(0,0,size.w,size.h).o(0).dba().ease({opacity: trans||0.5});
 	},
-	
+
 	/**
 	 * Show a popup, centered on screen.
 	 * You probably want to specify a max width or height in objPopupStyles...
@@ -3525,18 +3525,18 @@ CDE.extend({ <!--
 	 */
 	popup: function(strTitle, content, funcOk, options) { // funcCancel, funcAfterFade, boolNoButtons, boolNoCancel, strOk, strCancel, objPopupStyles, objHeadStyles, objBodyStyles, boolNoDisable, boolNoFocus, boolFocusOk
 		var cdeBlack, cdeButtons, cdePopup, boolClosed, boolCancelButton, cdeOk, cdeCancel, funcs;
-	
+
 		// make sure this object exists
 		if (!options) options = {};
-		
+
 		// show black disable panel?
 		if (!options.boolNoDisable) cdeBlack = CDE.disablePage();
 		// is the popup "open" or "closed" ?
 		boolClosed = false;
-		
+
 		// the popup controller
 		funcs = {};
-		
+
 		// clicking ok
 		funcs.ok = function(){
 			boolClosed = true;
@@ -3551,20 +3551,20 @@ CDE.extend({ <!--
 			if (cdeBlack) cdeBlack.fadeDelUncache(false, true, true);
 			if (options.funcCancel) options.funcCancel();
 		};
-	
+
 		// recenter the popup
 		funcs.center = function(){
 			cdePopup.center();
 		};
-		
+
 		// make sure we have a CDE for content
 		if (typeof content == 'string') content = CDE.html(content);
 		else content = CDE(content);
-	
+
 		// only add cancel option if either callback is given and it should not be hidden in the first place
 		// when true, the cross gets the innerCancel callback, else it's tied to the innerOk callback
 		boolCancelButton = !!(!options.boolNoButtons && !options.boolNoCancel && (funcOk || options.funcCancel));
-	
+
 		// create a div and add content
 		// get the dimensions and position it centered, depending on this position
 		// to get the position, the element needs to be displayed, but right now
@@ -3592,12 +3592,12 @@ CDE.extend({ <!--
 				)
 			)
 		).dba(); // add to body to force browser to compute dimensions (still hidden at this point)
-		
+
 		// focus the cancel link, unless specified otherwise or it doesnt exist
 		if (!options.boolNoFocus && boolCancelButton && !options.boolFocusOk) cdeCancel.focus();
 		// cancel was not focussed, focus ok, unless not focussing at all
 		else if (!options.boolNoFocus && !options.boolNoButtons) cdeOk.focus();
-		
+
 		funcs.hideButtons = function(boolFade){
 			if (!options.boolNoButtons) {
 				if (boolFade) cdeButtons.fadeOut();
@@ -3613,16 +3613,16 @@ CDE.extend({ <!--
 		funcs.show = function(){ cdePopup.fadeIn(); };
 		funcs.hide = function(){ cdePopup.fadeOut(); };
 		funcs.cde = cdePopup;
-		
+
 		// now center the popup
 		funcs.center();
 		// and show
 		funcs.show();
-		
+
 		// return the controller for this popup
 		return funcs;
 	},
-	
+
 	/**
 	 * Replace &<> by their html-entity equals
 	 * @param string s
@@ -3632,7 +3632,7 @@ CDE.extend({ <!--
 		if (typeof s == 'undefined') s = '';
 		return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 	},
-	
+
 	/**
 	 * Replaces all % by %25 en all & by %26
 	 * @param string s
@@ -3644,7 +3644,7 @@ CDE.extend({ <!--
 	},
 
 	/**
-	 * Try to parse the timestamp. 
+	 * Try to parse the timestamp.
 	 * Will try to parse the given timestamp to get a date.
 	 * Default order is strict to loose. You can change this order through
 	 * the arguments. Order and int values for arguments are as follows:
@@ -3674,9 +3674,9 @@ CDE.extend({ <!--
 		free[intHint2||2] = false;
 		free[intHint3||3] = false;
 		free[intHint4||4] = false;
-		
+
 		//debug("Free: "+free[1]+", "+free[2]+" "+free[3]+" "+free[4]);
-		
+
 		// define a function to repeat some step
 		parse = function(hint){
 			//debug("parse hint: "+hint);
@@ -3724,49 +3724,49 @@ CDE.extend({ <!--
 	 */
 	parseTimeYdmHis: function(stamp, boolToSeconds) { // 2009-09-02 07:35:00[p] (allows for single digit numbers except for the year, needs four, can have p appended to it for pm)
 		var match, regex, date;
-		
+
 		//debug("stamp:"+stamp);
-		
+
 		regex = /^([0-9]{4})-([0-9]{1,2})-([0-9]{1,2}) ([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})[ ]?([p])?.*$/;
 		match = regex.exec(stamp);
-	
+
 		if (!match || match.length < 6) throw {message:"CDE.parseTimeYdmHis(): Invalid timestamp ["+stamp+"]"};
-	
+
 		if (match[7] == 'p' && parseInt(match[4],10) < 12) match[7] = 12; // for pm, we add 12 hours
 		else match[7] = 0;
 		// Matches magic numbers are equal to () parts in the regex (y m d h m s tz)
 		// Months offset at 0, not 1 :@
-		// Also, dont forget the radix for parseInt, or it will parse zero 
+		// Also, dont forget the radix for parseInt, or it will parse zero
 		// prefixed values as octal (which returns 0 for 08 and 09)
 		date = new Date(parseInt(match[1], 10), parseInt(match[2], 10) -1, parseInt(match[3], 10), (parseInt(match[4], 10) + parseInt(match[7], 10)), parseInt(match[5], 10), parseInt(match[6], 10));
-	
+
 		if (boolToSeconds) return date.getTime()/1000;
 		return date;
 	},
 
 	/**
 	 * Parse an XML timestamp
-	 * 
+	 *
 	 * @param string stamp 2009-09-02T07:35:00+00:00
 	 * @param bool boolToSeconds=false Return the timestamp in unix seconds
 	 * @return Date
 	 */
 	parseTimeRfc3999: function(stamp, boolToSeconds) { // 2009-09-02T07:35:00+00:00
 		var date, tz, regex, match;
-		
+
 		// extract ydmhis and timezone
 		regex = /(\d{4}-\d{2}-\d{2}[ T]{1}\d{2}:\d{2}:\d{2})(.*)/;
 		match = regex.exec(stamp);
-		
+
 		// dont accept crap
 		if (!match) throw {message:"CDE.parseTimeRfc3999 was unable to parse stamp ["+stamp+"]"};
-	
+
 		// parse ydmhis (remove the T!)
 		date = CDE.parseTimeYdmHis(match[1].replace(/T/,' '));
-	
+
 		// adjust for timezone (timezone can be +xx:xx, -xx:xx and Z)
 		if (tz = parseInt(match[2], 10)) date.setTime(date.getTime()+(tz*60*60*1000));
-		
+
 		if (boolToSeconds) return date.getTime()/1000;
 		return date;
 	},
@@ -3774,9 +3774,9 @@ CDE.extend({ <!--
 	/**
 	 * Parse a KML timestamp. Will call CDE.parseTimeRfc3999 first.
 	 * Kml timestamps are tricky, they can be other than just a xml (rfc3999) timestamp
-	 * - gYear (YYYY) 
-	 * - gYearMonth (YYYY-MM) 
-	 * - date (YYYY-MM-DD) 
+	 * - gYear (YYYY)
+	 * - gYearMonth (YYYY-MM)
+	 * - date (YYYY-MM-DD)
 	 * - dateTime (YYYY-MM-DDThh:mm:ssZ) (rfc3999 in UTC)
 	 * - dateTime (YYYY-MM-DDThh:mm:sszzzzzz) (rfc3999)
 	 * @param string stamp
@@ -3798,7 +3798,7 @@ CDE.extend({ <!--
 			// return the date
 			date = new Date(parseInt(match[1], 10), parseInt(match[2], 10) -1, parseInt(match[3], 10)); // months-1 because months offset at 0
 		}
-		
+
 		if (boolToSeconds) return date.getTime()/1000;
 		return date;
 	},
@@ -3938,7 +3938,7 @@ var fInDown = function(evt,key){
 					x = 'window'+x;
 					pos += 6;
 				}
-					
+
 				if (/^[a-zA-Z0-9$_]+$/.test(y) || pos > 0) {
 					try { x = eval('('+x+');'); } catch(e){ debug(x+" causes an error..."); }
 					if (x) {
@@ -3968,7 +3968,7 @@ var fInDown = function(evt,key){
  * @return boolean Whether debug was created or not
  */
 CDE.debugUp = function(boolShow, dontForce){
-	if (debugUp) return; // dont create twice
+	if (debugUp) return false; // dont create twice
 	debugInitializing = true;
 	// create the debug bar element if it is not part of the markup
 	cdeDebug = CDE(debugId);
@@ -4000,7 +4000,7 @@ CDE.debugUp = function(boolShow, dontForce){
 		CDE.div().add(inp = CDE.inp('text').w(290).ml(3).mt(2).on('keyup', fInUp, 'keyboard').on('keydown', fInDown,'keyboard')),
 		cdeOutput = CDE.div().id('CDE_body').p(2).c('black').fs(10)
 	);
-		
+
 	// no need to cache most of these
 	CDE.gc();
 
