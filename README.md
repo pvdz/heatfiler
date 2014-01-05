@@ -34,6 +34,8 @@ Note that the build directory contains a built file (`heatfiler-build.js`). This
 
 ## UI
 
+![Tabs](https://f.cloud.github.com/assets/209817/1846699/51163758-7612-11e3-9ece-d906859bff48.png)
+
 The first tab, "Run code", allows you to enter code to execute. You can either enter actual JavaScript code there or a bunch of file urls. You can select to run them locally, or have the results stored to `localStorage` to load in another tab.
 
 When you enter code, it will immediately show you the translated result, though that should not be very important to you. When using files, the translation will also appear below the code when running.
@@ -44,7 +46,19 @@ The "NodeJS" tab is used to poll a nodejs project. It should have Heatfiler inte
 
 The "Result" tab, initially disabled, is where the heatmap will appear once you start running code or listening for results. It will be the most interesting part ;)
 
+## Run code
+
+![runcode](https://f.cloud.github.com/assets/209817/1846705/ca30bc44-7612-11e3-96b2-b4863351b7fd.png)
+
+Select whether you are inputting code or a list of files. There will be a placeholder to get you started.
+
+For code, just enter the JavaScript code. It will be included through a dynamic `<script>` tag.
+
+For the files, enter each file on its own line. Prefix it with a `+` or `-` to include or exclude it from the stats. All files will be fetched and loaded (dynamic `<script>` tags) in given order.
+
 ## Heatmap
+
+![heatmap](https://f.cloud.github.com/assets/209817/1846709/4dcfed4a-7613-11e3-95c1-c43851e7e17d.png)
 
 The results tab has a few gimmicks that I'd like to highlight:
 
@@ -68,6 +82,8 @@ The results tab has a few gimmicks that I'd like to highlight:
 -- Show some JIT information (tentative)
 
 ### Heatmap
+
+![heatmap](https://f.cloud.github.com/assets/209817/1846713/a8ef1b56-7613-11e3-9055-a3a502f0afd7.png)
 
 The heatmap will update as the stats are updated. It will continuously poll the localStorage or nodejs file for updates and adjust the heatmap accordingly.
 
@@ -96,11 +112,15 @@ It's an old trick.
 
 ### File selection tabs
 
+![files](https://f.cloud.github.com/assets/209817/1846716/da71f798-7613-11e3-895f-5ca0d2a4886c.png)
+
 When running files or listening to a nodejs project you will get tabs in the top-right corner for each file that was profiled.
 
 Each file has their own stats, and using the menu you can toggle showing the highlighting relative to the stats of all files or just to the file you are currently showing.
 
 ### Minimap
+
+![minimap](https://f.cloud.github.com/assets/209817/1846717/fa64efc4-7613-11e3-88f1-caca2220ce10.png)
 
 An awesome feature is a code minimap that will be shown on the right of the heatmap (if the code spans more than the height of the page). This allows you to quickly navigate through your code. Just click and/or drag to the right place.
 
@@ -109,6 +129,8 @@ An awesome feature is a code minimap that will be shown on the right of the heat
 It's possible to pause the updating process by clicking the toggle. Stats are still gathered but the heatmap is not updated to reflect this.
 
 ### Code coverage mode
+
+![codecoverage](https://f.cloud.github.com/assets/209817/1846725/3a24cf62-7614-11e3-81fd-60e3fda0bade.png)
 
 Since code coverage is all about code that is or is not ran, a code coverage mode was fairly trivial to implement.
 
@@ -124,17 +146,23 @@ To make this refresh process a bit easier you can toggle "auto start mode", whic
 
 ### Function list
 
+![functionlist](https://f.cloud.github.com/assets/209817/1846729/efdd27e6-7614-11e3-8901-01d80ee1f359.png)
+
 The menu has a button called "Most called funcs", which will pop up a list of functions in this file that were called the most times. Their name is guessed and sometimes not available.
 
 You can click on the function name to jump right to it.
 
 ### Statement list
 
+![statementlist](https://f.cloud.github.com/assets/209817/1846732/14f5a53a-7615-11e3-9e2e-bb32c907acd0.png)
+
 Similar to the function list, the statement list pops up a list of most executed statements.
 
 Note that this is not about which keyword is invoked the most, the description is just so you can click through on it to see the entire line of code.
 
 ### JIT info
+
+![jitinfo](https://f.cloud.github.com/assets/209817/1846736/5a063f2c-7615-11e3-98e3-f99d4a24eb23.png)
 
 Heatfiler will collect type stats as well. This option will popup an overview for the functions in this file.
 
