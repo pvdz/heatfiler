@@ -7,16 +7,16 @@ Heatfiler allows you to easily run through your code and find the heavy points. 
 
 It's fairly easy to integrate Heatfiler into an existing web project (unless it uses a module loader of some kind, like requirejs) by modifying the script tags and including Heatfiler. There are some examples in the project to demonstrate this. For nodejs it's even easier, though that requires some kind of webserver to work with.
 
-The initial version was hacked together in about two days. The current version contains some more work. It uses ZeParser2 as the JS parsing and rewriting backend.
+The initial version was hacked together in about two days. The current version contains some more work. It uses [ZeParser2](http://github.com/qfox/zeparser2/) as the JS parsing and rewriting backend.
 
 ## Demo
 
 See [heatfiler.qfox.nl](http://heatfiler.qfox.nl/) for a live demo of the profiler.
 
-I've also added three integration examples:
-- (http://heatfiler.qfox.nl/dragon/)
-- (http://heatfiler.qfox.nl/parallax/)
-- (http://heatfiler.qfox.nl/js1k/)
+I've also added three integration examples. Open one of:
+- http://heatfiler.qfox.nl/dragon/
+- http://heatfiler.qfox.nl/parallax/
+- http://heatfiler.qfox.nl/js1k/
 
 and then open [heatfiler](http://heatfiler.qfox.nl/) in another tab (click "Listen" tab and go). The heatmap updates real-time.
 
