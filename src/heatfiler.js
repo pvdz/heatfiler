@@ -216,6 +216,7 @@ HeatFiler.prototype = {
       default:
         console.warn('dunno what to send to localstorage ['+what+']');
     }
+    return this;
   },
   toFile: function(file){
     var key = Math.random();
@@ -249,7 +250,7 @@ HeatFiler.prototype = {
   },
 
   integrate: function(){
-    // find all scripts. if any of them has type=profiler or noprofiler; fetch, translate, and inject them into the page.
+    // find all scripts. if any of them has type=profile or noprofile; fetch, translate, and inject them into the page.
     var fileNames = [];
     var content = [];
     var scripts = qsa('script').forEach(function(e){
@@ -272,6 +273,8 @@ HeatFiler.prototype = {
       this.toLocalStorage('meta');
       this.run(this.profiledFidMap[0]);
     }.bind(this), content);
+
+    return this;
   },
 };
 

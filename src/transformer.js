@@ -141,7 +141,7 @@ var transformer = (function(Par){
     rangeString: function(tree, from, to){
       var s = '';
       for (var i=from; i<=to; ++i) {
-        s += tree[i].value;
+        s += transformer.escape(tree[i].value);
       }
       return s;
     },
@@ -181,7 +181,9 @@ var transformer = (function(Par){
                 var lv = last.value;
                 var nv = next.value;
 
-                if (nv === '.') {
+                if (lv === '[' && last.isExpressionStart) {
+                  next = null;
+                } else if (nv === '.') {
                   next = transformer.nextBlack(next, tree);
                   if (next) {
                     returnValue += transformer.rangeString(tree, index+1, next.white);
@@ -213,11 +215,16 @@ var transformer = (function(Par){
                   lv === '%' ||
                   lv === '*' ||
                   lv === '<' ||
+                  lv === '>' ||
+                  lv === '<<' ||
+                  lv === '>>' ||
+                  lv === '>>>' ||
                   lv === '<=' ||
                   lv === '>=' ||
                   lv === '>>=' ||
                   lv === '>>>=' ||
                   nv === '<' ||
+                  nv === '>' ||
                   nv === '<=' ||
                   nv === '>=' ||
                   nv === '>>=' ||

@@ -34,6 +34,8 @@
       #heatmap .function-exclude { vertical-align: text-bottom; font-size: 23px; margin-right: 1px; cursor: pointer; }
       #heatmap .function-focus:hover, #heatmap .function-exclude:hover { color: red; }
 
+      #heatmap.code-covering [title*="never"] { background-color: red; color: white; }
+
       #thumb { position:fixed; top:0; right:0; overflow: hidden; pointer-events:none; line-height: 17px; }
       #thumb-handler { position: fixed; top: 0; right: 0; }
       #thumb-viewport { background-color: rgba(0,0,0,0.2); position:fixed; top:0; right:0; pointer-events: none; }
@@ -179,10 +181,11 @@ require('<span id="example-heatfiler-location"></span>').bootstrap('<span id="ex
         <ul class="files"></ul>
         <p>Current file: <b class="current-file"></b></p>
         <ul id="tools">
-          <li id="mode-relative" class="on"><label><input type="checkbox"/> File relative stats</label></li>
-          <li id="mode-pause" class="off"><label><input type="checkbox"/> Pause updating</label></li>
-          <li id="mode-coverage" class="off"><label><input type="checkbox"/> Code coverage</label></li>
-          <li id="mode-lines" class="on"><label><input type="checkbox"/> Line numbers</label></li>
+          <li id="mode-relative" class="on"><label title="The count stats (determine red-ness) is from this file only?"><input type="checkbox"/> File relative stats</label></li>
+          <li id="mode-pause" class="off"><label title="Temporarily stops updating the ui (still gathers if running!)"><input type="checkbox"/> Pause updating</label></li>
+          <li id="mode-coverage" class="off"><label title="Mark any part of code that is never ran red?"><input type="checkbox"/> Code coverage</label></li>
+          <li id="mode-lines" class="on"><label title="Toggle showing the line numbers"><input type="checkbox"/> Line numbers</label></li>
+          <li id="mode-auto-start" class="off"><label title="Immediately jump to this tab on reload?"><input type="checkbox"/> Auto start here</label></li>
           <li id="most-funcs" class="tool">Most called funcs</li>
           <li id="most-stmts" class="tool">Most called statements</li>
           <li id="jit-info" class="tool">JIT info</li>

@@ -84,16 +84,17 @@ var bignums = function(count){
 var percent = function(n, m){
   return (Math.round((n / m)*10000)/100) || 0;
 };
+var bignumsn = function(n, m){
+  if (n === 0) return 'never';
+  return bignums(n, m);
+};
 
 var fetch = function(files, func, contents){
   if (files.length) {
     if (!contents) contents = [];
     var received = 0;
     files.forEach(function(s, index){
-
-      if (s === '+' || s === '-') {
-        ++received; // already have it
-      } else {
+      if (contents[index] === undefined) {
         var file = s;
         if (file[0] === '-' || file[0] === '+') file = file.slice(1);
         GET(file, function(e, r){
@@ -104,6 +105,11 @@ var fetch = function(files, func, contents){
             func(files, contents);
           }
         });
+      } else {
+        ++received; // already have it
+        if (received === files.length) {
+          func(files, contents);
+        }
       }
     });
   } else {

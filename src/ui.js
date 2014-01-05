@@ -1,3 +1,5 @@
+console.log('Tofix: function decls can be "called" to define a function and "called" to invoke it. The function keyword only shows "invocations" right now.');
+console.log('Tofix: switching between code/files in same session leads to `cant read prop arguments undefined`');
 var IDENTIFIER = 13;
 var WHITE = 18;
 var ui = {
@@ -58,7 +60,7 @@ var ui = {
     if (thumb) thumb.parentNode.removeChild(thumb);
 
     ui.modePauseUpdating = false;
-    var cb = qs('.mode-pause input');
+    var cb = qs('#mode-pause input');
     if (cb && cb.checked !== ui.modePauseUpdating) cb.click();
   },
 
@@ -264,6 +266,22 @@ var ui = {
       e.className = 'invisible';
     }
   },
+  updateAutoStart: function(){
+    var args = location.hash.split(',');
+
+    var pos = args.indexOf('start');
+    if (pos >= 0) args.splice(pos, 1);
+    else pos = args.length;
+
+    var cb = qs('#mode-auto-start input');
+    if (cb && cb.checked) args.splice(pos, 0, 'start');
+
+    location.hash = args.join(',');
+  },
+  enableCodeCoverage: function(){
+    gebi('heatmap').className = ui.modeCodeCoverage ? 'code-covering' : '';
+    ui.applyStats();
+  },
 
   getHeatmapElements: function(){
     // cache all important elements so we can update them quickly
@@ -327,7 +345,6 @@ var ui = {
       case 'storage':
         var stats = hf.fromLocalStorage('stats');
         if (stats.key !== hf.stats) {
-          console.log("updating stats");
           hf.stats = stats;
           ui.applyStats();
         }
@@ -343,7 +360,6 @@ var ui = {
           }
           var stats = JSON.parse(json).stats;
           if (stats.key !== hf.stats.key) {
-            console.log("updating stats");
             hf.stats = stats;
             ui.applyStats();
           }
@@ -422,17 +438,20 @@ var ui = {
 
       if (obj.isReturn) {
         var title =
-          'Return ('+bignums(obj.count)+'), stats for _this_ return only:\n'+
+          'Return ('+bignumsn(obj.count)+'), stats for _this_ return only:\n'+
           'T/F: '+bignums(obj.truthy)+' / '+bignums(obj.falsy)+
           ' (abs: '+percent(obj.truthy,obj.count)+'% / '+percent(obj.falsy,obj.count)+'%)' +
           ' (rel: '+percent(obj.truthy,max)+'% / '+percent(obj.falsy,max)+'%)\n' +
           'Types: '+(obj.types === undefined ? '' : obj.types);
+        if (ui.modeCodeCoverage) title += ' '; // force update when toggling code coverage
         if (e.title !== title) e.title = title;
       } else if (obj.type === 'arg') {
         var title = 'Types: '+obj.types + (excluded?' ':'');
+        if (ui.modeCodeCoverage) title += ' '; // force update when toggling code coverage
         if (e.title !== title) {
           e.title = title;
           if (excluded) e.style.backgroundColor = 'inherit';
+          else if (ui.modeCodeCoverage) e.style.backgroundColor = '';
           else if (obj.types.indexOf(' ',1) > 0) e.style.backgroundColor = 'rgb(255, 100, 255)';
         }
       } else if (obj.type === 'func') {
@@ -440,15 +459,18 @@ var ui = {
 
         var title =
           (excluded ? '!! function excluded from counts !!\n' : '') +
-          'Called: '+bignums(count)+' x\n' +
+          'Called: '+bignumsn(count)+' x\n' +
           'Return types: '+obj.types+'\n' +
           'T/F: '+bignums(obj.truthy)+' / '+bignums(obj.falsy) +
           ' ('+percent(obj.truthy,count)+'% / '+percent(obj.falsy,count)+'%)\n' +
           '(Click to focus on function)';
 
+        if (ui.modeCodeCoverage) title += ' '; // force update when toggling code coverage
+
         if (e.title !== title) {
           e.title = title;
-          if (obj.types.indexOf(' ',1) > 0) {
+          if (ui.modeCodeCoverage) e.style.backgroundColor = '';
+          else if (obj.types.indexOf(' ', 1) > 0) {
             if (obj.types.indexOf('implicit') >= 0) e.style.backgroundColor = 'rgb(255, 230, 255)';
             else e.style.backgroundColor = 'rgb(255, 100, 255)';
           }
@@ -456,7 +478,7 @@ var ui = {
         }
       } else if (obj.type === 'qmark') {
         title =
-          'Ternary ('+bignums(obj.allCount)+'):\n' +
+          'Ternary ('+bignumsn(obj.allCount)+'):\n' +
             ' - total T/F: '+bignums(obj.allTruthy)+' / '+bignums(obj.allFalsy)+
             ' (abs: '+percent(obj.allTruthy,obj.allCount)+'% / '+percent(obj.allFalsy,obj.allCount)+'%)' +
             ' (rel: '+percent(obj.allTruthy,max)+'% / '+percent(obj.allFalsy,max)+'%)\n' +
@@ -479,8 +501,10 @@ var ui = {
 
         if (e.title !== title) e.title = title;
       } else {
-        title = (obj.epsilon ? 'End of block: ':'');
-        title += bignums(obj.count)+' ('+percent(obj.count, max)+'%)';
+        title = (obj.epsilon ? 'End of block/case: ':'');
+        var countOrNever = bignumsn(obj.count);
+        if (obj.epsilon && countOrNever === 'never') countOrNever = '-'; // prevent epsilons to light up in code coverage
+        title += countOrNever+' ('+percent(obj.count, max)+'%)';
 
         if (obj.isReturn) {
           title = 'Statement: '+ title;
@@ -498,14 +522,16 @@ var ui = {
         else throw console.log(obj),'unknown type:'+obj.type;
 
         if (excluded) title = '(excluded)\n' + title;
+        if (ui.modeCodeCoverage) title += ' '; // force update when toggling code coverage
 
         if (e.title !== title) {
           e.title = title;
           if (excluded) {
             e.style.backgroundColor = 'inherit';
+          } else if (ui.modeCodeCoverage) {
+            e.style.backgroundColor = '';
           } else {
             var n = (255-Math.floor((obj.count / max)*255));
-            if (ui.modeCodeCoverage) n = (obj.count || e.innerHTML === '\u03B5') ? 255 : 0;
             e.style.backgroundColor = 'rgb(255, '+n+', '+n+')';
           }
         }
@@ -547,9 +573,17 @@ var ui = {
     ui.updateHash(target, targetTab);
   },
   updateHash: function(target, targetTab){
+    var args = location.hash.split(',');
+
     if (target === 'result') targetTab.className = 'enabled '+targetTab.className;
-    else if (target === 'run') location.hash = 'run,'+(gebi('run-code').checked?'code':'files')+','+(gebi('run-here').checked?'here':'tab');
-    else location.hash = target;
+    else if (target === 'run') {
+      location.hash =
+        'run,'+
+        (gebi('run-code').checked?'code':'files')+','+
+        (gebi('run-here').checked?'here':'tab')+
+        (args.indexOf('start') >= 0 ? ',start' : '');
+    }
+    else location.hash = target + (args.indexOf('start') >= 0 ? ',start' : '');
   },
   updatePlaceholder: function(forCode){
     if (forCode) {
@@ -864,10 +898,6 @@ qsa('.run.page .start').forEach(function(e){
       else input = ui.defaultFiles;
     }
 
-    // tmp
-    if (isCode) input = input.slice(input.indexOf('#')+1);
-    else input = input.slice(0, input.indexOf('#'));
-
     if (isCode) {
       haveInput(['+'], [input]);
     } else {
@@ -900,13 +930,29 @@ qsa('.run.page input[type="radio"]').forEach(function(e){
 qs('.run.page .input').onblur = function(){
   ui.saveRunInput(gebi('run-code').checked ? 'code' : 'files', this.value);
 };
+qs('.run.page .input').onkeyup = function(){
+  if (gebi('run-code').checked) {
+    var input = ui.getInput('.run.page');
+    if (!input) input = ui.defaultCode;
+    try {
+      var hf = new HeatFiler().localFiles(['+'], [input]);
+      try {
+        transformer.parse(hf.transformed[0]);
+      } catch (e) {
+        hf = {transformed:'Translation was bad: '+e};
+      }
+    } catch (e) {
+      hf = {transformed:'Unable to parse input: '+e};
+    }
+    ui.setOutput('.run.page', hf.transformed);
+  }
+};
 qs('.listen.page .start').onclick = function(){
   ui.clean();
 
   var hf = new HeatFiler();
   var meta = hf.fromLocalStorage('meta');
   hf.localFiles(meta.fileNames, meta.contents);
-  console.log("updating stats");
   var stats = hf.stats = hf.fromLocalStorage('stats');
   ui.setOutput('.listen.page', hf.transformed);
   gebi('busy').style.display = 'none';
@@ -939,7 +985,6 @@ qs('.nodejs.page .start').onclick = function(){
       qs('.nodejs.page .translated').value = json.contents.join('\n\n// ######### next file #######\n\n');
       hf.localFiles(json.fileNames, json.contents);
       var stats = hf.stats = json.stats;
-      console.log("updating stats");
       stats.key = false; // make sure it tries to update stats the first time
       hf.profiledFidMap = json.profiledFidMap;
       qs('#example-profiles').innerHTML = '\''+json.fileNames.join('\',\n  \'')+'\'';
@@ -963,8 +1008,9 @@ qs('.result.paig .files').onclick = function(e){
 
 modeButton('modeFileRelative', 'mode-relative');
 modeButton('modePauseUpdating', 'mode-pause');
-modeButton('modeCodeCoverage', 'mode-coverage');
+modeButton('modeCodeCoverage', 'mode-coverage', ui.enableCodeCoverage);
 modeButton('modeLineNumbers', 'mode-lines', ui.updateLineNumbers);
+modeButton('modeAutoStart', 'mode-auto-start', ui.updateAutoStart);
 
 gebi('most-funcs').onclick = ui.showFunctionInfo;
 gebi('most-stmts').onclick = ui.showStatementInfo;
@@ -1012,9 +1058,19 @@ if (location.hash) {
     gebi('run-tab').checked = args[2] === 'tab';
   }
   ui.openTab(target);
+
+  if (args.indexOf('start') >= 0) {
+    // the timeout is kind of a hack, but we need to wait for localstorage data to be loaded into UI
+    setTimeout(function(){
+      console.log('Auto starting (url hash contains `auto`)');
+      document.querySelector('.open button.start').click()
+    }, 10);
+  }
 }
 
 // update the code input field with localstorage
 ui.updatePlaceholder(gebi('run-code').checked);
 ui.updateRunInput(gebi('run-code').checked);
 qs('.nodejs.page .input').value = localStorage.getItem(ui.localStorageOutputFileKey);
+// if start is in hash, toggle menu option
+if (location.hash.split(',').indexOf('start') >= 0) qs('#mode-auto-start input').click();
