@@ -2939,7 +2939,8 @@
       // find all scripts. if any of them has type=profile or noprofile; fetch, translate, and inject them into the page.
       var fileNames = [];
       var content = [];
-      var scripts = qsa('script').forEach(function(e){
+
+      Array.prototype.slice.call(document.querySelectorAll('script'), 0).forEach(function(e){
         var type = e.getAttribute('type');
         if (type === 'profile' || type === 'noprofile') {
           if (e.src) {
@@ -2951,6 +2952,50 @@
           }
         }
       });
+
+      var fetch = function(files, func, contents){
+        if (files.length) {
+          if (!contents) contents = [];
+          var received = 0;
+          files.forEach(function(s, index){
+            if (contents[index]) {
+              ++received; // already have it
+              if (received === files.length) {
+                func(files, contents);
+              }
+            } else {
+              var file = s;
+              if (file[0] === '-' || file[0] === '+') file = file.slice(1);
+              GET(file, function(e, r){
+                if (e) throw e;
+                contents[index] = r;
+                ++received;
+                if (received === files.length) {
+                  func(files, contents);
+                }
+              });
+            }
+          });
+        } else {
+          func(files, []);
+        }
+      };
+      var GET = function(url, callback){
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function(){
+          if (xhr.readyState == 4) {
+            try { xhr.status; // status is a getter, this checks for exception
+            } catch (e) {
+              callback(new Error("Warning: Unknown error with server request (timeout?)."));
+            }
+
+            if (xhr.status == 200) callback(null, xhr.responseText);
+            else callback(new Error("File request problem (code: "+xhr.status+")!"));
+          }
+        };
+        xhr.open("GET", url+'?'+Math.random());
+        xhr.send(null);
+      };
 
       // get all external files and run all scripts once they're all in
       fetch(fileNames, function(fileNames, contents){
