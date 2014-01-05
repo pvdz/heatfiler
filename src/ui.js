@@ -586,9 +586,9 @@ var ui = {
   },
   updatePlaceholder: function(forCode){
     if (forCode) {
-      qs('.run.page .input').placeholder = ui.defaultCode.replace(/  /g,'\xA0\xA0').replace(/s*\n/g, '                                                                    ');
+      qs('.run.page .input').placeholder = ui.defaultCode.replace(/  /g,'\xA0\xA0').replace(/\s*\n/g, '                                                                    ');
     } else {
-      qs('.run.page .input').placeholder = ui.defaultFiles.replace(/s*\n/g, '                                                                    ');
+      qs('.run.page .input').placeholder = ui.defaultFiles.replace(/\s*\n/g, '                                                                    ');
     }
   },
   updateRunInput: function(forCode){
@@ -1068,7 +1068,7 @@ if (location.hash) {
   if (args.indexOf('start') >= 0) {
     // the timeout is kind of a hack, but we need to wait for localstorage data to be loaded into UI
     setTimeout(function(){
-      console.log('Auto starting (url hash contains `auto`)');
+      console.log('Auto starting (url hash contains `start`)');
       document.querySelector('.open button.start').click()
     }, 10);
   }
