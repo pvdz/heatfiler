@@ -11,7 +11,7 @@ The initial version was hacked together in about two days. The current version c
 
 ## Demo
 
-See [heatfiler.qfox.nl](http://heatfiler.qfox.nl/) for a live demo of the profiler.
+See [heatfiler.qfox.nl](http://localhost/heatfiler/src/#run,files,here) for a live demo of the profiler.
 
 I've also added three integration examples. Open one of:
 - http://heatfiler.qfox.nl/dragon/
@@ -236,7 +236,9 @@ Note: this is using the undocumented `module._compile` in NodeJS (but it does so
 
 ## Blog post
 
-For (even) more information, check [the blog post](http://qfox.nl/weblog/268) :p
+For (even) more information... :)
+- [about v1](http://qfox.nl/weblog/268)
+- [about v2](http://qfox.nl/weblog/305)
 
 ## Have fun
 
