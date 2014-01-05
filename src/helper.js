@@ -118,6 +118,16 @@ var fetch = function(files, func, contents){
   }
 };
 
+var prevBlack = function(tree, index){
+  --index;
+  while (tree[index] && tree[index].type === WHITE) --index;
+  return tree[index];
+};
+var nextBlack = function(tree, index){
+  ++index;
+  while (tree[index] && tree[index].type === WHITE) ++index;
+  return tree[index];
+};
 var funcNameFrom = function(tree, uid){
   // get the name
   var name = 'anonymous';
