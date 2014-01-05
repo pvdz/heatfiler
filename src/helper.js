@@ -1,3 +1,4 @@
+// these functions only help for ui.js
 var gebi = function(id) { return document.getElementById(id); };
 var qs = function(q){
   return document.querySelector(q);
@@ -117,20 +118,6 @@ var fetch = function(files, func, contents){
   }
 };
 
-var nextBlack = function(tree, index){
-  var ASI = 15;
-  var WHITE = 18;
-  while (index<tree.length-2 && (tree[++index].type === WHITE || tree[index].type === ASI));
-  if (index<tree.length-1) return tree[index];
-  return null;
-};
-var prevBlack = function(tree, index){
-  var ASI = 15;
-  var WHITE = 18;
-  while (index>0 && (tree[--index].type === WHITE || tree[index].type === ASI));
-  if (index>=0) return tree[index];
-  return null;
-};
 var funcNameFrom = function(tree, uid){
   // get the name
   var name = 'anonymous';

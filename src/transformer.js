@@ -1,9 +1,4 @@
-if (typeof Par === 'undefined') {
-  if (typeof require !== 'function') console.warn('Need to include ZeParser2, it is missing...');
-  else var Par = require(__dirname+'/../lib/par.js').Par;
-}
-
-var transformer = (function(Par){
+(function(exports, Par){
   var ASI = 15;
   var WHITE = 18;
   var IDENTIFIER = 13;
@@ -325,7 +320,9 @@ var transformer = (function(Par){
     },
   };
 
-  return transformer;
-})(Par); // pas on Par so it cant get overwritten by user code
-
-if (typeof exports !== 'undefined') exports.transformer = transformer;
+  exports.transformer = transformer;
+})(
+  typeof exports !== 'undefined' ? exports : window,
+  // pass on Par so it cant get overwritten by user code
+  window.Par || exports.Par || require(__dirname+'/../lib/par.js').Par
+);

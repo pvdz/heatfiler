@@ -1,3 +1,4 @@
+console.log('TOFIX: jit info not showing NaN option, functions (clickthrough) cant be clicked?');
 var IDENTIFIER = 13;
 var WHITE = 18;
 var ui = {
