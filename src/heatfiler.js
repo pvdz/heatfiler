@@ -45,7 +45,7 @@ HeatFiler.prototype = {
   },
 
   exposeGlobals: function(toLocalStorage, _transformer, outputFileForNodejs){
-    if (!outputFileForNodejs) _transformer = transformer; // in nodejs, _transformer will be passed on
+    if (!outputFileForNodejs) _transformer = transformer; // in nodejs, transformer will be passed on
 
     var that = this;
     var stats = this.stats;
@@ -77,9 +77,12 @@ HeatFiler.prototype = {
 
     // we store a single instance of each function so we can copy that to global (web) or to each file (node)
 
-    this.globals[_transformer.nameStatementCount] = global[_transformer.nameStatementCount] = function(fid, uid){
-      var obj = stats[fid].statements[uid];
-      ++obj.count;
+    this.globals[_transformer.nameStatementCount] = global[_transformer.nameStatementCount] = function(fid, uid, funcDeclared){
+      if (funcDeclared) {
+        ++stats[fid].functions[uid].declared;
+      } else {
+        ++stats[fid].statements[uid].count;
+      }
       if (toLocalStorage) tryFlush();
     };
     this.globals[_transformer.nameExpressionCount] = global[_transformer.nameExpressionCount] = function(fid, uid, value){

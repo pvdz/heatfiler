@@ -1,5 +1,3 @@
-console.log('Tofix: function decls can be "called" to define a function and "called" to invoke it. The function keyword only shows "invocations" right now.');
-console.log('Tofix: switching between code/files in same session leads to `cant read prop arguments undefined`');
 var IDENTIFIER = 13;
 var WHITE = 18;
 var ui = {
@@ -456,9 +454,9 @@ var ui = {
         }
       } else if (obj.type === 'func') {
         var count = obj.truthy + obj.falsy;
-
         var title =
           (excluded ? '!! function excluded from counts !!\n' : '') +
+          (typeof obj.declared === 'number' ? 'Declared: '+bignumsn(obj.declared)+' x\n':'') +
           'Called: '+bignumsn(count)+' x\n' +
           'Return types: '+obj.types+'\n' +
           'T/F: '+bignums(obj.truthy)+' / '+bignums(obj.falsy) +
@@ -934,17 +932,24 @@ qs('.run.page .input').onkeyup = function(){
   if (gebi('run-code').checked) {
     var input = ui.getInput('.run.page');
     if (!input) input = ui.defaultCode;
+    var msg = '';
     try {
-      var hf = new HeatFiler().localFiles(['+'], [input]);
+      transformer.parse(input);
+    } catch (e) {
+      msg = 'Unable to parse input: '+e;
+    }
+
+    try {
+      msg = new HeatFiler().localFiles(['+'], [input]).transformed[0];
       try {
-        transformer.parse(hf.transformed[0]);
+        transformer.parse(msg);
       } catch (e) {
-        hf = {transformed:'Translation was bad: '+e};
+        msg = 'Translation was bad: '+e;
       }
     } catch (e) {
-      hf = {transformed:'Unable to parse input: '+e};
+      msg = 'Error while translating: '+e;
     }
-    ui.setOutput('.run.page', hf.transformed);
+    ui.setOutput('.run.page', msg);
   }
 };
 qs('.listen.page .start').onclick = function(){

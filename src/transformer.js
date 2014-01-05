@@ -25,7 +25,7 @@ var transformer = (function(Par){
     },
     transform: function(fid, tree){
       tree.forEach(function(o){ o.oValue = o.value; });
-      return tree.map(function(token,index){
+      tree.forEach(function(token,index){
         if (token.isElseToken) {
           var t = token;
           do t = tree[t.white+1];
@@ -74,10 +74,15 @@ var transformer = (function(Par){
         }
 
         if (token.isStatementStart) {
-          token.value =
-            (token.sameToken?'':' { ') +
-            transformer.nameStatementCount+'('+fid+', '+index+'); ' +
-            token.value;
+          if (token.value === 'function') {
+            if (token.parentFuncToken.isGlobal) tree[0].value = transformer.nameStatementCount+'('+fid+', '+index+', true); ' + tree[0].value;
+            else token.parentFuncToken.lhc.value += transformer.nameStatementCount+'('+fid+', '+index+', true); ';
+          } else {
+            token.value =
+              (token.sameToken?'':' { ') +
+              transformer.nameStatementCount+'('+fid+', '+index+'); ' +
+              token.value;
+          }
         }
 
         if (token.isStatementStop) {
@@ -91,9 +96,9 @@ var transformer = (function(Par){
             return transformer.nameArgCheck+'('+fid+','+t.white+','+t.value+'); ';
           }).join('');
         }
+      });
 
-        return token.value;
-      }).join('');
+      return tree.map(function(o){ return o.value; }).join('');
     },
     escape: function(s){ return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); },
     initializeStats: function(fid, tree, stats){
@@ -101,7 +106,8 @@ var transformer = (function(Par){
       var fstats = stats[fid];
       tree.forEach(function(token,index){
         if (token.isFunctionMarker) {
-          fstats.functions[index] = {type:'func', types:'', truthy:0, falsy:0};
+          var obj = fstats.functions[index] = {type:'func', types:'', truthy:0, falsy:0};
+          if (token.isFuncDeclKeyword) obj.declared = 0;
         }
         if (token.isExpressionStart) {
           fstats.expressions[index] = {type:'expr', count:0, types:'', truthy:0, falsy:0};
