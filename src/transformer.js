@@ -3,6 +3,8 @@
   var WHITE = 18;
   var IDENTIFIER = 13;
   var NUMBER = 7;
+  var REGEX = 8;
+  var STRING = 10;
   var transformer = {
     nameStatementCount: '$statement$',
     nameExpressionCount: '$expression$',
@@ -176,82 +178,114 @@
               returnValue += transformer.escape(token.value);
 
               // add a bunch of rules on which to extend the wrap. certain things can be improved visually.
-              var next = token;
+              var current = token;
               var last = token;
-              while (next = transformer.nextBlack(last, tree)) {
+              while (current = transformer.nextBlack(last, tree)) {
                 var lv = last.value;
-                var nv = next.value;
+                var cv = current.value;
 
                 if (lv === '[' && last.isExpressionStart) {
-                  next = null;
-                } else if (nv === '.') {
-                  next = transformer.nextBlack(next, tree);
-                  if (next) {
-                    returnValue += transformer.rangeString(tree, index+1, next.white);
-                    index = next.white;
+                  current = null;
+                } else if (cv === '.') {
+                  current = transformer.nextBlack(current, tree);
+                  if (current) {
+                    returnValue += transformer.rangeString(tree, index+1, current.white);
+                    index = current.white;
                   }
                 } else if (
-                  ((lv === '++' || lv === '--') && next.type === IDENTIFIER) ||
+                  ((lv === '++' || lv === '--') && current.type === IDENTIFIER) ||
+
+                  // only grab current (cv) for unary ops if last (lv) was not a paren open
                   lv === '!' ||
                   lv === '~' ||
                   lv === 'new' ||
                   lv === 'delete' ||
                   lv === 'typeof' ||
-                  nv === '==' ||
-                  nv === '===' ||
-                  nv === '!=' ||
-                  nv === '!==' ||
-                  lv === '==' ||
-                  lv === '===' ||
-                  lv === '!=' ||
-                  lv === '!==' ||
-                  nv === '+' ||
-                  nv === '-' ||
-                  next.type === NUMBER ||
+
+                  // +- are only danger here since they can also be unary...
                   lv === '+' ||
                   lv === '-' ||
+
+                  (lv !== '(' && (
+                    cv === '+' ||
+                    cv === '-' ||
+                    cv === '!' ||
+                    cv === '~' ||
+                    cv === 'new' ||
+                    cv === 'delete' ||
+                    cv === 'typeof' ||
+
+                    // +- are only danger here since they can also be unary...
+                    cv === '+' ||
+                    cv === '-' ||
+
+                    // this has the same problem as unaries `(15)`, but we'd like them in
+                    current.type === NUMBER ||
+                    current.type === STRING ||
+                    current.type === REGEX
+                  )) ||
+
+                  // lookahead for binary ops though... (lv and nv)
+                  lv === '==' ||
+                  cv === '==' ||
+                  lv === '===' ||
+                  cv === '===' ||
+                  lv === '!=' ||
+                  cv === '!=' ||
+                  lv === '!==' ||
+                  cv === '!==' ||
                   lv === '/' ||
+                  cv === '/' ||
                   lv === '&' ||
+                  cv === '&' ||
                   lv === '|' ||
+                  cv === '|' ||
+                  lv === '^' ||
+                  cv === '^' ||
                   lv === '%' ||
+                  cv === '%' ||
                   lv === '*' ||
+                  cv === '*' ||
                   lv === '<' ||
+                  cv === '<' ||
                   lv === '>' ||
+                  cv === '>' ||
                   lv === '<<' ||
+                  cv === '<<' ||
                   lv === '>>' ||
+                  cv === '>>' ||
                   lv === '>>>' ||
+                  cv === '>>>' ||
                   lv === '<=' ||
+                  cv === '<=' ||
                   lv === '>=' ||
+                  cv === '>=' ||
                   lv === '>>=' ||
+                  cv === '>>=' ||
                   lv === '>>>=' ||
-                  nv === '<' ||
-                  nv === '>' ||
-                  nv === '<=' ||
-                  nv === '>=' ||
-                  nv === '>>=' ||
-                  nv === '>>>='
+                  cv === '>>>='
                 ) {
-                  returnValue += transformer.rangeString(tree, index+1, next.white);
-                  index = next.white;
-                } else if (nv === '++' || nv === '--' || nv === '[') {
-                  returnValue += transformer.rangeString(tree, index+1, next.white);
-                  index = next.white;
-                  next = null; // end of any expression
-                } else if (nv === '(' && next.isCallStart) {
-                  returnValue += transformer.rangeString(tree, index+1, next.white);
-                  index = next.white;
-                  next = transformer.nextBlack(next, tree);
-                  if (next.value === ')' && next.isCallStop) {
-                    returnValue += transformer.rangeString(tree, index+1, next.white);
-                    index = next.white;
-                    next = transformer.nextBlack(next, tree);
+                  returnValue += transformer.rangeString(tree, index+1, current.white);
+                  index = current.white;
+                } else if (cv === '++' || cv === '--' || cv === '[') {
+                  returnValue += transformer.rangeString(tree, index+1, current.white);
+                  index = current.white;
+                  current = null; // end of any expression
+                } else if (cv === '(' && current.isCallStart) {
+                  returnValue += transformer.rangeString(tree, index+1, current.white);
+                  index = current.white;
+                  current = transformer.nextBlack(current, tree);
+                  if (current.value === ')' && current.isCallStop) {
+                    returnValue += transformer.rangeString(tree, index+1, current.white);
+                    index = current.white;
+                    current = transformer.nextBlack(current, tree);
                   } else {
-                    next = null;
+                    current = null;
                   }
                 } else {
-                  next = null; // did not find anything to continue, so stop
+                  current = null; // did not find anything to continue, so stop
                 }
-                last = next;
+                last = current;
               }
 
               returnValue += '</span>';
