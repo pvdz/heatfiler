@@ -193,6 +193,8 @@
                     index = current.white;
                   }
                 } else if (
+                  // TOFIX: problem with ExpressionStatement
+
                   ((lv === '++' || lv === '--') && current.type === IDENTIFIER) ||
 
                   // only grab current (cv) for unary ops if last (lv) was not a paren open
@@ -220,7 +222,7 @@
                     cv === '-' ||
 
                     // this has the same problem as unaries `(15)`, but we'd like them in
-                    current.type === NUMBER ||
+//                    current.type === NUMBER ||
                     current.type === STRING ||
                     current.type === REGEX
                   )) ||
@@ -267,7 +269,7 @@
                 ) {
                   returnValue += transformer.rangeString(tree, index+1, current.white);
                   index = current.white;
-                } else if (cv === '++' || cv === '--' || cv === '[') {
+                } else if (((cv === '++' || cv === '--') && lv !== '(') || cv === '[') {
                   returnValue += transformer.rangeString(tree, index+1, current.white);
                   index = current.white;
                   current = null; // end of any expression
