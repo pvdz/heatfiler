@@ -83,6 +83,10 @@
         }
         if (toLocalStorage) tryFlush();
       };
+      this.globals[_transformer.caseCheck] = global[_transformer.caseCheck] = function(fid, uid, value, switchValue){
+        global[_transformer.nameExpressionCount](fid, uid, value === switchValue);
+        return value;
+      };
       this.globals[_transformer.nameExpressionCount] = global[_transformer.nameExpressionCount] = function(fid, uid, value){
         var obj = stats[fid].expressions[uid];
         ++obj.count;

@@ -11,6 +11,8 @@
     nameArgCheck: '$arg$',
     nameReturnCheck: '$return$',
     nameQmark: '$qmark$',
+    switchVar: '$switchvar$',
+    caseCheck: '$case$',
 
     process: function(fid, input, stats){
       var tokens = transformer.parse(input);
@@ -70,8 +72,48 @@
           token.value = transformer.nameReturnCheck+'('+fid+','+token.funcToken.white+', -1, void 0, true);' + token.value;
         }
 
+        if (token.isCaseKeyword) {
+          var switchVar = transformer.switchVar + '_' + token.switchToken.white;
+
+          // find start of expression
+          var t = tree[token.white+1];
+          while (t && t.type === WHITE) t = tree[t.white+1];
+
+          // wrap case expression in special call
+          token.value += ' '+transformer.caseCheck+'('+fid+', '+ index +', (';
+          token.colonToken.value = '), '+switchVar+')'+token.colonToken.value;
+
+//          if (t) delete t.isExpressionStart; // prevent useless wrap since we're already wrapping here
+        }
+
         if (token.isStatementStart) {
-          if (token.value === 'function') {
+          if (token.isSwitchKeyword) {
+            // switch needs special handling to get T/F for each case
+            // each switch has lhp, rhp, lhc, and rhc reference
+            // each case has a reference to its parent switch
+            // each case also has a reference to its succeeding colon
+
+            // wrap each switch in a block such that:
+            // switch(x) { case y: }
+            // ->
+            // {var $switchVar_1$ = x; switch ($switchVar_1$) { case $case$(x, id, $switchVar_1$): } }
+            // (In words: put switch arg into a variable to reference it later. Pass on each case value together
+            // with the switch var and make the function compare them too, make it return just the case value.)
+
+            var switchVar = transformer.switchVar + '_' + token.white;
+
+            var header = tree.slice(token.lhp.white + 1, token.rhp.white)
+              .map(function (t, i) {
+                var v = t.value;
+                t.value = '';
+                if (i === 0) t.value = switchVar;
+                return v;
+              })
+              .join('');
+
+            token.value = '{\nvar ' + switchVar + ' = ' + header + ';\nswitch';
+            token.rhc += '}';
+          } else if (token.value === 'function') {
             if (token.parentFuncToken.isGlobal) tree[0].value = transformer.nameStatementCount+'('+fid+', '+index+', true); ' + tree[0].value;
             else token.parentFuncToken.lhc.value += transformer.nameStatementCount+'('+fid+', '+index+', true); ';
           } else {
@@ -106,7 +148,7 @@
           var obj = fstats.functions[index] = {type:'func', types:'', truthy:0, falsy:0};
           if (token.isFuncDeclKeyword) obj.declared = 0;
         }
-        if (token.isExpressionStart) {
+        if (token.isExpressionStart || token.isCaseKeyword ) {
           fstats.expressions[index] = {type:'expr', count:0, types:'', truthy:0, falsy:0};
         }
         if (token.isStatementStart) {
@@ -158,7 +200,7 @@
         var alreadyEscaped = false;
         var returnValue = '';
 
-        if (token.isExpressionStart) {
+        if (token.isExpressionStart || token.isCaseKeyword) {
           alreadyEscaped = true;
 
           if (!forThumb) {
@@ -341,6 +383,7 @@
           }
           alreadyEscaped = true;
         }
+
         if (token.isForElse >= 0) { // else-if
           alreadyEscaped = true;
           returnValue += transformer.escape(token.value);
