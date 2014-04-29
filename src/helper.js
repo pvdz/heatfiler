@@ -58,15 +58,7 @@ var parseFiles = function(str){
       return !/^\s*$/.test(s);
     })
     .map(function(s){
-      s = s.replace(/^\s*/, '');
-      if (s[0] === '-') {
-        s = s.replace(/^-\s*/g, '');
-        if (s) s = '-'+s;
-      } else {
-        s = s.replace(/^\+?\s*/g, '');
-        if (s) s = '+'+s;
-      }
-      return s;
+      return s.replace(/^\s*(\+|-)?\s*/, '$1').replace(/\s*$/, '').replace(/^(\+|-)$/, '');
     })
     .filter(function(s){
       return !!s;
