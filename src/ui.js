@@ -799,6 +799,7 @@ var ui = {
     var f = page.functions;
     Object.keys(f).forEach(function(uid){
       var t = f[uid].types;
+      t = t.replace(/ ?number/, ''); // there will be a subtype
       if (t.indexOf(' ') >= 0) {
         if (t.indexOf('implicit') >= 0) {
           ++counts.implicit;
@@ -876,11 +877,12 @@ var ui = {
             t = t.replace(' implicit', '');
           }
         }
-        if (t.indexOf(' ') > 0) {
+        t = t.replace(/ ?number/, ''); // there will be a subtype
+        if (t.indexOf(' ', 1) > 0) {
           var n = t.slice(1).split(' ').length;
           if ('has'+n === what || (n>4 && what === 'more')) {
             var name = funcNameFrom(tree, uid);
-            items.push('<span style="float:left;">'+name+'</span> : '+f[uid].types);
+            items.push('<span style="float:left;">'+name+'</span> : '+f[uid].types.replace(/ ?number/, ''));
           }
         }
       });
