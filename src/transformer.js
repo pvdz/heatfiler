@@ -248,24 +248,25 @@
                   lv === '+' ||
                   lv === '-' ||
 
-                  (lv !== '(' && (
-                    cv === '+' ||
-                    cv === '-' ||
-                    cv === '!' ||
-                    cv === '~' ||
-                    cv === 'new' ||
-                    cv === 'delete' ||
-                    cv === 'typeof' ||
-
-                    // +- are only danger here since they can also be unary...
-                    cv === '+' ||
-                    cv === '-' ||
-
-                    // this has the same problem as unaries `(15)`, but we'd like them in
-//                    current.type === NUMBER ||
-                    current.type === STRING ||
-                    current.type === REGEX
-                  )) ||
+                    // TOFIX: find a way to do these properly
+//                  (lv !== '(' && (
+//                    cv === '+' ||
+//                    cv === '-' ||
+////                    cv === '!' ||
+//                    cv === '~' ||
+//                    cv === 'new' ||
+//                    cv === 'delete' ||
+//                    cv === 'typeof' ||
+//
+//                    // +- are only danger here since they can also be unary...
+//                    cv === '+' ||
+//                    cv === '-' ||
+//
+//                    // this has the same problem as unaries `(15)`, but we'd like them in
+////                    current.type === NUMBER ||
+//                    current.type === STRING ||
+//                    current.type === REGEX
+//                  )) ||
 
                   // lookahead for binary ops though... (lv and nv)
                   lv === '==' ||
@@ -309,7 +310,9 @@
                 ) {
                   returnValue += transformer.rangeString(tree, index+1, current.white);
                   index = current.white;
-                } else if (((cv === '++' || cv === '--') && lv !== '(') || cv === '[') {
+                } else if ((
+                  //(cv === '++' || cv === '--') && // TOFIX: find a way to do this properly
+                  lv !== '(') || cv === '[') {
                   returnValue += transformer.rangeString(tree, index+1, current.white);
                   index = current.white;
                   current = null; // end of any expression
