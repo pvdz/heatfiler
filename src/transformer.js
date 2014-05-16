@@ -310,12 +310,12 @@
                 ) {
                   returnValue += transformer.rangeString(tree, index+1, current.white);
                   index = current.white;
-                } else if ((
-                  //(cv === '++' || cv === '--') && // TOFIX: find a way to do this properly
-                  lv !== '(') || cv === '[') {
-                  returnValue += transformer.rangeString(tree, index+1, current.white);
-                  index = current.white;
-                  current = null; // end of any expression
+//                } else if (
+////                  ((cv === '++' || cv === '--') && lv !== '(') || // TOFIX: find a way to do this properly
+//                  cv === '[') {
+//                  returnValue += transformer.rangeString(tree, index+1, current.white);
+//                  index = current.white;
+//                  current = null; // end of any expression
                 } else if (cv === '(' && current.isCallStart) {
                   returnValue += transformer.rangeString(tree, index+1, current.white);
                   index = current.white;
