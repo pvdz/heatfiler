@@ -441,17 +441,21 @@ var ui = {
           'T/F: '+bignums(obj.truthy)+' / '+bignums(obj.falsy)+
           ' (abs: '+percent(obj.truthy,obj.count)+'% / '+percent(obj.falsy,obj.count)+'%)' +
           ' (rel: '+percent(obj.truthy,max)+'% / '+percent(obj.falsy,max)+'%)\n' +
-          'Types: '+(obj.types === undefined ? '' : obj.types);
+          'Types: '+(obj.types === undefined ? '' : obj.types)+
+          ui.statsToString(obj.typeCount);
         if (ui.modeCodeCoverage) title += ' '; // force update when toggling code coverage
-        if (e.title !== title) e.title = title;
+        if (e.title !== title) {
+          e.title = title;
+          if (ui.typeAttention(obj.types)) e.style.backgroundColor = 'rgb(255, 100, 255)';
+        }
       } else if (obj.type === 'arg') {
-        var title = 'Types: '+obj.types + (excluded?' ':'');
+        var title = 'Types: '+obj.types +ui.statsToString(obj.typeCount)+ (excluded?' ':'');
         if (ui.modeCodeCoverage) title += ' '; // force update when toggling code coverage
         if (e.title !== title) {
           e.title = title;
           if (excluded) e.style.backgroundColor = 'inherit';
           else if (ui.modeCodeCoverage) e.style.backgroundColor = '';
-          else if (obj.types.indexOf(' ',1) > 0) e.style.backgroundColor = 'rgb(255, 100, 255)';
+          else if (ui.typeAttention(obj.types)) e.style.backgroundColor = 'rgb(255, 100, 255)';
         }
       } else if (obj.type === 'func') {
         var count = obj.truthy + obj.falsy;
@@ -459,7 +463,8 @@ var ui = {
           (excluded ? '!! function excluded from counts !!\n' : '') +
           (typeof obj.declared === 'number' ? 'Declared: '+bignumsn(obj.declared)+' x\n':'') +
           'Called: '+bignumsn(count)+' x\n' +
-          'Return types: '+obj.types+'\n' +
+          'Return types: '+obj.types+
+          ui.statsToString(obj.typeCount)+'\n'+
           'T/F: '+bignums(obj.truthy)+' / '+bignums(obj.falsy) +
           ' ('+percent(obj.truthy,count)+'% / '+percent(obj.falsy,count)+'%)\n' +
           '(Click to focus on function)';
@@ -469,10 +474,7 @@ var ui = {
         if (e.title !== title) {
           e.title = title;
           if (ui.modeCodeCoverage) e.style.backgroundColor = '';
-          else if (obj.types.indexOf(' ', 1) > 0) {
-            if (obj.types.indexOf('implicit') >= 0) e.style.backgroundColor = 'rgb(255, 230, 255)';
-            else e.style.backgroundColor = 'rgb(255, 100, 255)';
-          }
+          else if (ui.typeAttention(obj.types)) e.style.backgroundColor = 'rgb(255, 100, 255)';
           else e.style.backgroundColor = 'inherit';
         }
       } else if (obj.type === 'qmark') {
@@ -481,7 +483,8 @@ var ui = {
             ' - total T/F: '+bignums(obj.allTruthy)+' / '+bignums(obj.allFalsy)+
             ' (abs: '+percent(obj.allTruthy,obj.allCount)+'% / '+percent(obj.allFalsy,obj.allCount)+'%)' +
             ' (rel: '+percent(obj.allTruthy,max)+'% / '+percent(obj.allFalsy,max)+'%)\n' +
-            ' - total types: '+obj.allTypes+'\n' +
+            ' - total types: '+obj.allTypes+
+            ui.statsToString(obj.allTypeCount)+'\n'+
             '\n'+
             ' - condition T/F: '+bignums(obj.condTruthy)+' / '+bignums(obj.condFalsy)+
             ' (abs: '+percent(obj.condTruthy,obj.allCount)+'% / '+percent(obj.condFalsy,obj.allCount)+'%)' +
@@ -498,7 +501,10 @@ var ui = {
             ' (rel: '+percent(obj.rightTruthy,max)+'% / '+percent(obj.rightFalsy,max)+'%)\n' +
             ' - right types: '+obj.rightTypes;
 
-        if (e.title !== title) e.title = title;
+        if (e.title !== title) {
+          e.title = title;
+          if (ui.typeAttention(obj.allTypes)) e.style.backgroundColor = 'rgb(255, 100, 255)';
+        }
       } else {
         title = (obj.epsilon ? 'End of block/case: ':'');
         var countOrNever = bignumsn(obj.count);
@@ -516,7 +522,8 @@ var ui = {
             'T/F: '+bignums(obj.truthy)+' / '+bignums(obj.falsy)+
             ' (abs: '+percent(obj.truthy,obj.count)+'% / '+percent(obj.falsy,obj.count)+'%)' +
             ' (rel: '+percent(obj.truthy,max)+'% / '+percent(obj.falsy,max)+'%)\n' +
-            'Types: '+obj.types;
+            'Types: '+obj.types+
+            ui.statsToString(obj.typeCount);
         }
         else throw console.log(obj),'unknown type:'+obj.type;
 
@@ -529,6 +536,7 @@ var ui = {
             e.style.backgroundColor = 'inherit';
           } else if (ui.modeCodeCoverage) {
             e.style.backgroundColor = '';
+//          else if (ui.typeAttention(obj.types)) e.style.backgroundColor = 'rgb(255, 100, 255)';
           } else {
             var n = (255-Math.floor((obj.count / max)*255));
             e.style.backgroundColor = 'rgb(255, '+n+', '+n+')';
@@ -536,6 +544,23 @@ var ui = {
         }
       }
     });
+  },
+  statsToString: function(obj){
+    var s = '';
+    var types = Object.keys(obj);
+    if (types.length) {
+      s = '\n  ' + types.map(function(type){
+        return type+': '+bignums(obj[type]);
+      }).join(' x\n  ');
+    }
+    return s;
+  },
+  typeAttention: function(types){
+    // input is multi-typed if there are mixed types. two notable exceptions
+    // have to be checked here though: undefined+implicit and number+subtype
+    // also, NaN and Infinity should immediately alert you.
+
+    return types.replace(/ ?implicit/, '').replace(/ ?number/, '').indexOf(' ') > 0 || types.indexOf('NaN') > 0 || types.indexOf('Infinity') > 0;
   },
 
   setFocus: function(from, to, funcId){

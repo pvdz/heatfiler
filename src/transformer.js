@@ -145,23 +145,20 @@
       var fstats = stats[fid];
       tree.forEach(function(token,index){
         if (token.isFunctionMarker) {
-          var obj = fstats.functions[index] = {type:'func', types:'', truthy:0, falsy:0};
+          var obj = fstats.functions[index] = {type:'func', types:'', typeCount:{}, truthy:0, falsy:0};
           if (token.isFuncDeclKeyword) obj.declared = 0;
         }
         if (token.isExpressionStart || token.isCaseKeyword ) {
-          fstats.expressions[index] = {type:'expr', count:0, types:'', truthy:0, falsy:0};
+          fstats.expressions[index] = {type:'expr', count:0, types:'', typeCount:{}, truthy:0, falsy:0};
         }
         if (token.isStatementStart) {
-          var obj = fstats.statements[token.isForElse || index] = {
-            type: 'stmt',
-            count: 0,
-          };
+          var obj = fstats.statements[token.isForElse || index] = {type: 'stmt', count: 0, types:'', typeCount: {}};
           if (token.sameToken) obj.epsilon = true;
           if (token.isReturnKeyword) obj.isReturn = true;
         }
         if (token.argTokens) {
           token.argTokens.forEach(function(t){
-            fstats.arguments[t.white] = {type:'arg', types:'', truthy:0, falsy:0};
+            fstats.arguments[t.white] = {type:'arg', types:'', typeCount:{}, truthy:0, falsy:0};
           });
         }
         if (token.isQmark) {
@@ -170,6 +167,7 @@
             type:'qmark',
             allCount: 0,
             allTypes: '',  leftTypes: '', rightTypes: '', condTypes: '',
+            allTypeCount: {}, leftTypeCount: {}, rightTypeCount: {}, condTypeCount: {},
             allTruthy: 0,  leftTruthy: 0, rightTruthy: 0, condTruthy: 0,
             allFalsy: 0,   leftFalsy: 0,  rightFalsy: 0,  condFalsy: 0,
           };

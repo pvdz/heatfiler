@@ -9,6 +9,12 @@
     this.globals = {};
   };
 
+  var UBYTE = 256;
+  var SBYTE = 128;
+  var USHORT = Math.pow(2, 16);
+  var SSHORT = Math.pow(2, 15);
+  var UINT = Math.pow(2, 32);
+  var SINT = Math.pow(2, 31);
 
   HeatFiler.prototype = {
     source: null,
@@ -132,7 +138,7 @@
             ++obj.allCount;
             if (!!value) ++obj.allTruthy;
             else ++obj.allFalsy;
-            that.typeCheck(obj, value, 'condTypes');
+            that.typeCheck(obj, value, 'condTypes', 'condTypeCount');
             break;
           case 'L':
             ++obj.allCount;
@@ -143,8 +149,8 @@
               ++obj.leftFalsy;
               ++obj.allFalsy;
             }
-            that.typeCheck(obj, value, 'leftTypes');
-            that.typeCheck(obj, value, 'allTypes');
+            that.typeCheck(obj, value, 'leftTypes', 'leftTypeCount');
+            that.typeCheck(obj, value, 'allTypes', 'allTypeCount');
             break;
           case 'R':
             ++obj.allCount;
@@ -155,8 +161,8 @@
               ++obj.rightFalsy;
               ++obj.allFalsy;
             }
-            that.typeCheck(obj, value, 'rightTypes');
-            that.typeCheck(obj, value, 'allTypes');
+            that.typeCheck(obj, value, 'rightTypes', 'rightTypeCount');
+            that.typeCheck(obj, value, 'allTypes', 'allTypeCount');
             break;
         }
 
@@ -174,16 +180,42 @@
         global[key] = globals[key];
       }
     },
-    typeCheck: function(obj, value, prop){
-      if (!prop) prop = 'types';
+    typeCheck: function(obj, value, typeProp, typesProp){
+      if (!typeProp) typeProp = 'types';
+      if (!typesProp) typesProp = 'typeCount';
+
       var type = typeof value;
-      if (obj[prop].indexOf(type) < 0) obj[prop] += ' ' + type;
+      this.addType(obj, typeProp, typesProp, type);
+
       if (type === 'number') {
-        if (isNaN(value) && obj[prop].indexOf('NaN') < 0) obj[prop] += ' NaN';
-        if (!isFinite(value) && obj[prop].indexOf('Infinity') < 0) obj[prop] += ' Infinity';
+        var numberType = 's-long'; // only if nothing else
+
+        if (isNaN(value)) numberType = 'NaN'; // very bad for perf
+        else if (!isFinite(value)) numberType = 'Infinity';
+
+        // fractions have fewer types :) and are slower to optimize.
+        else if ((value|0) !== value && value < SINT && value >= -SINT) numberType = 'float';
+        else if ((value|0) !== value) numberType = 'double';
+
+        // using mix of - and _ to make sure indexOf doesn't trigger. ugly hack, i know.
+
+        else if (value >= 0 && value <= UBYTE) numberType = 'u-byte';
+        else if (value >= -SBYTE && value < SBYTE) numberType = 's-byte';
+        else if (value >= 0 && value < USHORT) numberType = 'u-short';
+        else if (value >= -SSHORT && value < SSHORT) numberType = 's-short';
+        else if (value >= 0 && value < UINT) numberType = 'u-int';
+        else if (value >= -SINT && value < SINT) numberType = 's-int';
+        else if (value >= 0) numberType = 'u-long';
+
+        this.addType(obj, typeProp, typesProp, numberType);
       }
+
       if (value) ++obj.truthy;
       else ++obj.falsy;
+    },
+    addType: function(obj, typeProp, typesProp, type){
+      if (obj[typeProp].indexOf(type) < 0) obj[typeProp] += ' '+type;
+      obj[typesProp][type] = -~obj[typesProp][type]; // -~ is basically ++ with support for if the value is undefined :) Learned it from Jed, blame him.
     },
 
     run: function(fid){
