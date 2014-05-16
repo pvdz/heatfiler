@@ -789,6 +789,8 @@ var ui = {
       quad: 0,
       poly: 0,
       args: 0,
+      e2: 0,
+      emore: 0,
     };
 
     var fid = ui.currentFid;
@@ -814,6 +816,17 @@ var ui = {
       }
     });
 
+    var e = page.expressions;
+    Object.keys(e).forEach(function(uid){
+      var t = e[uid].types;
+      t = t.replace(/ ?number/, ''); // there will be a subtype
+      if (t.indexOf(' ') >= 0) {
+        var n = t.slice(1).split(' ').length;
+        if (n === 2) ++counts.e2;
+        else if (n>2) ++counts.emore;
+      }
+    });
+
     var a = page.arguments;
     Object.keys(a).forEach(function(uid){
       if (a[uid].types.indexOf(' ') > 0) {
@@ -833,6 +846,8 @@ var ui = {
           '<li class="has4">Functions with four return types: <b>'+counts.quad+'</b></div>'+
           '<li class="more">Functions with more return types: <b>'+counts.poly+'</b></div>'+
           '<li class="args">Arguments with multiple types: <b>'+counts.args+'</b></div>'+
+          '<li class="expr2">Expressions with two types: <b>'+counts.e2+'</b></div>'+
+          '<li class="exprm">Expressions with more than two: <b>'+counts.emore+'</b></div>'+
         '</ul>';
 
     document.body.appendChild(pre);
@@ -859,9 +874,21 @@ var ui = {
     var items = [];
     if (what === 'args') {
       var a = page.arguments;
-      Object.keys(a).forEach(function(uid){
+      Object.keys(a).forEach(function (uid) {
         if (a[uid].types.indexOf(' ') > 0) {
-          items.push('<span style="float:left;">'+gebi('id-'+uid).innerHTML+'</span> : '+a[uid].types);
+          // TOFIX: onclick scroll element in view or something
+          items.push('<span style="float:left;">' + gebi('id-' + uid).innerHTML + '</span> : ' + a[uid].types);
+        }
+      });
+    } else if (what === 'expr2' || what === 'exprm') {
+      var e = page.expressions;
+      Object.keys(e).forEach(function (uid) {
+        var t = e[uid].types;
+        t = t.replace(/ ?number/, ''); // there will be a subtype
+        var n = t.slice(1).split(' ').length;
+        if ((n === 2 && what==='expr2') || (n > 2 && what === 'exprm')) {
+          // TOFIX: onclick scroll element in view or something
+          items.push('<span style="float:left;">' + gebi('id-' + uid).innerHTML + '</span> : ' + e[uid].types);
         }
       });
     } else {
