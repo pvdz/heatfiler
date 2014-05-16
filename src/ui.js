@@ -946,6 +946,32 @@ qsa('.run.page .start').forEach(function(e){
     }
   };
 });
+qsa('.run.page .preview').forEach(function(e){
+  e.onclick = function(){
+    ui.clean();
+
+    var isCode = gebi('run-code').checked;
+    var isLocal = gebi('run-here').checked;
+
+    var input = ui.getInput('.run.page');
+    if (!input) {
+      if (isCode) input = ui.defaultCode;
+      else input = ui.defaultFiles;
+    }
+
+    if (isCode) {
+      haveInput(['+'], [input]);
+    } else {
+      var files = parseFiles(input);
+      fetch(files, haveInput);
+    }
+
+    function haveInput(files, contents){
+      var hf = new HeatFiler().localFiles(files, contents);
+      ui.setOutput('.run.page', hf.transformed);
+    }
+  };
+});
 qsa('.run.page input[type="radio"]').forEach(function(e){
   e.onclick = function(){
     ui.updateHash('run');
