@@ -1,4 +1,7 @@
-console.log('TOFIX: jit info not showing NaN option, functions (clickthrough) cant be clicked?');
+// jit info not showing NaN option
+// functions (clickthrough) cant be clicked
+// can we track whether return value is dropped? like `f()` vs `x=f()` or `x(f())`?
+
 var IDENTIFIER = 13;
 var WHITE = 18;
 var ui = {
