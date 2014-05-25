@@ -105,6 +105,7 @@
             var header = tree.slice(token.lhp.white + 1, token.rhp.white)
               .map(function (t, i) {
                 var v = t.value;
+                t.isExpressionStart = false;
                 t.value = '';
                 if (i === 0) t.value = switchVar;
                 return v;
