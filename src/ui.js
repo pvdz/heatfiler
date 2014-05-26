@@ -1,6 +1,10 @@
 // jit info not showing NaN option
 // functions (clickthrough) cant be clicked
 // can we track whether return value is dropped? like `f()` vs `x=f()` or `x(f())`?
+// add macros for heatfiler where certain stats are inlined like as a comment or something, to actually display percentages etc.
+// the "most called functions" dropdown should ignore excluded functions from stats, have pagination.
+// report NaN's (and perhaps Infinity as well). maybe scream this.
+// option to hide artifact characters
 
 var IDENTIFIER = 13;
 var WHITE = 18;
