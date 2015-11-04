@@ -121,17 +121,18 @@ var nextBlack = function(tree, index){
   return tree[index];
 };
 var funcNameFrom = function(tree, uid){
-  // get the name
-  var name = 'anonymous';
-  var tok = nextBlack(tree, +uid);
-  if (tok && tok.value !== '(') {
-    name = tok.value;
-  } else {
-    tok = prevBlack(tree, +uid);
-    if (tok && (tok.value === '=' || tok.value === ':')) {
-      tok = prevBlack(tree, tok.white);
-      if (tok) name = tok.value;
-    }
-  }
-  return name;
+  return tree[+uid].textName;
+  //// get the name
+  //var name = 'anonymous';
+  //var tok = nextBlack(tree, +uid);
+  //if (tok && tok.value !== '(') {
+  //  name = tok.value;
+  //} else {
+  //  tok = prevBlack(tree, +uid);
+  //  if (tok && (tok.value === '=' || tok.value === ':')) {
+  //    tok = prevBlack(tree, tok.white);
+  //    if (tok) name = tok.value;
+  //  }
+  //}
+  //return name;
 };

@@ -29,6 +29,8 @@
       #heatmap { padding: 3px; background-color: white; color: #ccc; line-height: 17px; width: 80%; width: -moz-calc(100% - 240px);  width: -webkit-calc(100% - 240px);  width: calc(100% - 240px); overflow: auto; }
       .heat { color: black; border: 1px solid transparent; line-height: 17px; cursor: help; }
       .heat:hover { border-color: black; }
+      .heat.func { color: blue; }
+      .func-decl-name { color: blue; }
 
       #heatmap .function-focus { vertical-align: text-bottom; font-size: 19px; cursor: pointer; }
       #heatmap .function-exclude { vertical-align: text-bottom; font-size: 23px; margin-right: 1px; cursor: pointer; }
@@ -55,6 +57,7 @@
       #popup { background-color:white; position: fixed; top:20px; left:50%; border: 1px solid black; padding: 5px; padding-bottom: 10px; max-height: 80%; overflow: auto; }
       #popup .count { float:left; width:50px; text-align:right; }
       #popup .link { cursor: pointer; text-decoration: underline; }
+      #popup .soft.link { color: #aaa; }
       #popup .link:hover { color: red; }
       #popup li:hover { color: red; cursor: pointer; }
       #popup .close { text-align: center; margin-top: 15px; }

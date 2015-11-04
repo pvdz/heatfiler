@@ -20,7 +20,7 @@
       return transformer.transform(fid, tokens);
     },
     parse: function(input){
-      return Par.parse(input, {saveTokens:true}).tok.tokens;
+      return Par.parse(input, {saveTokens:true, createBlackStream: true}).tok.tokens;
     },
     transform: function(fid, tree){
       tree.forEach(function(o){ o.oValue = o.value; });
@@ -182,6 +182,12 @@
       while (tree[i] && tree[i].type === WHITE) ++i;
       return tree[i];
     },
+    prevBlack: function(token, tree){
+      if (!token) return null;
+      var i = token.white-1;
+      while (tree[i] && tree[i].type === WHITE) --i;
+      return tree[i];
+    },
     rangeString: function(tree, from, to){
       var s = '';
       for (var i=from; i<=to; ++i) {
@@ -203,7 +209,13 @@
           alreadyEscaped = true;
 
           if (!forThumb) {
-            if (token.isFunctionMarker) {
+            if (token.isFunctionMarker) { // expression! or case... (TOFIX: testcase for a function in a `case`)
+              var str = transformer.escape(token.value);
+              var identName = transformer.nextBlack(token, tree);
+              if (identName.isFuncDeclName) {
+                str = transformer.rangeString(tree, index, identName.white);
+              }
+
               // we want to hide the expression span (not remove it because that makes other
               // parts of the code break and handling that gracefully is far more complex
               // opposed to just hiding these elements and let them be). So...
@@ -211,9 +223,11 @@
                 '<span id="id-'+index+'" style="display:none;"></span>' +
                 '<span class="function-focus" title="click to zoom in on this function" data-index="'+index+'">\u2923</span>' +
                 '<span class="function-exclude" title="click to exclude this function from stats" data-index="'+index+'">\u2295</span>' +
-                '<span id="func-id-'+index+'">' +
-                  transformer.escape(token.value) +
+                '<span id="func-id-'+index+'" data-func-name="'+token.textName+'" data-func-alt-name="'+token.altTextName+'">' +
+                  str +
                 '</span>';
+
+              if (identName.isFuncDeclName) index = identName.white;
             } else {
               returnValue += '<span id="id-'+index+'">';
               returnValue += transformer.escape(token.value);
@@ -339,6 +353,9 @@
           } else {
             returnValue += transformer.escape(token.value);
           }
+        } else if (token.isFuncDeclName) {
+          returnValue += '<span class="func-decl-name">' + transformer.escape(token.value) + '</span>';
+          alreadyEscaped = true;
         } else if (token.isQmark) {
           returnValue += '<span id="qmark-id-'+index+'">' + transformer.escape(token.value) + '</span>';
           alreadyEscaped = true;
@@ -367,16 +384,24 @@
               }
             }
 
-            // TODO what case is this?
+            // TODO what case is this? function in else? or just exactly not that?
             if (!forThumb && token.isFunctionMarker) {
+              var str = transformer.escape(token.value);
+              var funcName = transformer.nextBlack(token, tree);
+              if (funcName.isFuncDeclName) {
+                str = transformer.rangeString(tree, index, funcName.white);
+              }
+
               // we want to hide the expression span (not remove it because that makes other
               // parts of the code break and handling that gracefully is far more complex
               // opposed to just hiding these elements and let them be). So...
               returnValue +=
                 '<span id="id-'+eindex+'" style="display:none;"></span>' +
-                '<span id="func-id-'+eindex+'">' +
-                  transformer.escape(token.value) +
+                '<span id="func-id-'+index+'" data-func-name="'+token.textName+'" data-func-alt-name="'+token.altTextName+'">' +
+                  str +
                 '</span>';
+
+              if (funcName.isFuncDeclName) index = funcName.white;
             } else {
               if (!forThumb) returnValue += '<span id="id-'+eindex+'">';
               returnValue += transformer.escape(token.value);

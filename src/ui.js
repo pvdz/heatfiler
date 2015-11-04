@@ -466,8 +466,12 @@ var ui = {
         }
       } else if (obj.type === 'func') {
         var count = obj.truthy + obj.falsy;
+        var funcname = e.getAttribute('data-func-name');
+        var altname = e.getAttribute('data-func-alt-name');
         var title =
           (excluded ? '!! function excluded from counts !!\n' : '') +
+          'Name: '+funcname+'\n'+
+          (altname!=='undefined'?'(Or: '+altname+')\n':'')+
           (typeof obj.declared === 'number' ? 'Declared: '+bignumsn(obj.declared)+' x\n':'') +
           'Called: '+bignumsn(count)+' x\n' +
           'Return types: '+obj.types+
@@ -763,11 +767,18 @@ var ui = {
     pre.innerHTML =
       '<div class="close"><span>close</span></div>\n' +
         list.map(function(uid){
+          var token = tree[uid];
           // get the name
-          var name = tree[uid].value;
+          var name = token.value;
+
+        // get the function that scopes this statement to get a name for orientation
+          var func = 'global';
+          if (token.ownerFuncToken) {
+            func = '<span class="soft link" data-uid="'+token.ownerFuncToken.white+'">'+token.ownerFuncToken.textName+'</span>'
+          }
 
           var o = page.statements[uid];
-          return '<span class="count link" data-uid="'+uid+'">'+bignums(o.count)+'</span> - '+name;
+          return '<span class="count link" data-uid="'+uid+'">'+bignums(o.count)+'</span> - '+name+' <small>&lt;'+func+'&gt;</small>';
         }).join('\n');
 
     document.body.appendChild(pre);
@@ -775,7 +786,11 @@ var ui = {
     pre.onclick = function(e){
       if (e.target.className === 'count link') {
         var uid = e.target.getAttribute('data-uid');
-        var f = document.getElementById('id-'+uid);
+        var f = document.getElementById('id-' + uid);
+        f.scrollIntoView();
+      } else if (e.target.className === 'soft link') {
+        var uid = e.target.getAttribute('data-uid');
+        var f = document.getElementById(ui.funcTokenIdPrefix+uid);
         f.scrollIntoView();
       } else if (e.target.parentElement.className === 'close') {
         var g = e.target.parentElement.parentElement;
@@ -884,7 +899,7 @@ var ui = {
       Object.keys(a).forEach(function (uid) {
         if (a[uid].types.indexOf(' ') > 0) {
           // TOFIX: onclick scroll element in view or something
-          items.push('<span style="float:left;">' + gebi('id-' + uid).innerHTML + '</span> : ' + a[uid].types);
+          items.push('<span style="float:left;" class="link expr" data-uid="'+uid+'">' + (gebi('id-' + uid).innerHTML||'(empty?)') + '</span> : ' + a[uid].types);
         }
       });
     } else if (what === 'expr2' || what === 'exprm') {
@@ -894,8 +909,7 @@ var ui = {
         t = t.replace(/ ?number/, ''); // there will be a subtype
         var n = t.slice(1).split(' ').length;
         if ((n === 2 && what==='expr2') || (n > 2 && what === 'exprm')) {
-          // TOFIX: onclick scroll element in view or something
-          items.push('<span style="float:left;">' + gebi('id-' + uid).innerHTML + '</span> : ' + e[uid].types);
+          items.push('<span style="float:left;" class="link expr" data-uid="'+uid+'">' + (gebi('id-' + uid).innerHTML||'(empty?)') + '</span> : ' + e[uid].types);
         }
       });
     } else {
@@ -905,7 +919,7 @@ var ui = {
         if (t.indexOf('implicit') >= 0) {
           if (what === 'implicit') {
             var name = funcNameFrom(tree, uid);
-            items.push('<span style="float:left;">'+name+'</span> : '+f[uid].types);
+            items.push('<span style="float:left;" class="link" data-uid="'+uid+'">'+name+'</span> : '+f[uid].types);
             t = ''; // dont need it anymore
           } else {
             t = t.replace(' implicit', '');
@@ -916,7 +930,7 @@ var ui = {
           var n = t.slice(1).split(' ').length;
           if ('has'+n === what || (n>4 && what === 'more')) {
             var name = funcNameFrom(tree, uid);
-            items.push('<span style="float:left;">'+name+'</span> : '+f[uid].types.replace(/ ?number/, ''));
+            items.push('<span style="float:left;" class="link" data-uid="'+uid+'">'+name+'</span> : '+f[uid].types.replace(/ ?number/, ''));
           }
         }
       });
@@ -933,9 +947,13 @@ var ui = {
 
     pre.onclick = function(e){
       if (e.target.className === 'link') {
-//        var uid = e.target.getAttribute('data-uid');
-//        var f = document.getElementById(ui.funcTokenIdPrefix+uid);
-//        f.scrollIntoView();
+        var uid = e.target.getAttribute('data-uid');
+        var f = document.getElementById(ui.funcTokenIdPrefix + uid);
+        f.scrollIntoView();
+      } else if (e.target.className === 'link expr') {
+        var uid = e.target.getAttribute('data-uid');
+        var f = document.getElementById('id-'+uid);
+        f.scrollIntoView();
       } else if (e.target.parentElement.className === 'close') {
         var g = e.target.parentElement.parentElement;
         g.parentElement.removeChild(g);
