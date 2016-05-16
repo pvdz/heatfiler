@@ -42,6 +42,7 @@ var ui = {
       '  else (function(x,y){ return "B" })();\n' +
     '}',
   defaultFiles:
+    '@ console.log(\'Starting now...\');\n' +
     '- ../../zeparser2/src/uni.js\n' +
     '+ ../../zeparser2/src/tok.js\n' +
     '+ ../../zeparser2/src/par.js\n' +
@@ -293,6 +294,7 @@ var ui = {
     // cache all important elements so we can update them quickly
     var excluded = ui.excludedRanges[ui.currentFid] || {};
     var stats = ui.currentHf.stats;
+    if (!stats) return console.warn('avoided bug... are you sure you are using localstorage mode? not local page mode..');
     var page = stats[ui.currentFid];
     var all = [];
     for (var uid in page.statements) if (page.statements.hasOwnProperty(uid)) {

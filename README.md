@@ -54,7 +54,7 @@ Select whether you are inputting code or a list of files. There will be a placeh
 
 For code, just enter the JavaScript code. It will be included through a dynamic `<script>` tag.
 
-For the files, enter each file on its own line. Prefix it with a `+` or `-` to include or exclude it from the stats. All files will be fetched and loaded (dynamic `<script>` tags) in given order.
+For the files, enter each file on its own line. Prefix something with `@` to have it eval as regular code instead of file path. Prefix with a `+` or `-` to load it and include or exclude it from the stats. All files will be fetched and loaded (dynamic `<script>` tags) in given order. Without prefix, `+` is assumed.
 
 ## Heatmap
 
