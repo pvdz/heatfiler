@@ -747,19 +747,16 @@ var ui = {
     var hf = ui.currentHf;
     var stats = hf.stats;
     var page = stats[fid];
+    var funcs = page.functions;
     var tree = ui.trees[fid];
 
-    var keys = Object.keys(page.statements);
+    var list = Object.keys(page.statements);
 
-    var list = keys.slice(0, 20);
-
-    keys.slice(20).forEach(function(k){
-      var l = page.statements[k];
-      list.some(function(m, index){
-        var n = page.statements[m];
-        if (l.count > n.count) return !!(list[index] = k);
-        return false;
-      });
+    list = list.filter(function(uid) {
+      var token = tree[uid];
+      var func = token.ownerFuncToken;
+      if (!func) return true;
+      return func.isGlobal || !funcs[func.white].excluded;
     });
 
     list.sort(function(a,b){
@@ -770,6 +767,8 @@ var ui = {
       if (A<B) return 1;
       return 0;
     });
+
+    list = list.slice(0, 20);
 
     var pre = document.createElement('pre');
     pre.id = 'popup';
