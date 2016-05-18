@@ -140,6 +140,17 @@ var ui = {
     };
   },
   excludeFunction: function(tree, index){
+    var fid = ui.currentFid;
+    var hf = ui.currentHf;
+    var stats = hf.stats;
+    var page = stats[fid];
+    var funcObj = page.functions[index];
+    if (funcObj) {
+      // probably works. :) this makes it exclude it from the most called funcs as well.
+      funcObj.excluded = !funcObj.excluded;
+    }
+
+
     var token = tree[index];
     var to = token.rhc.white;
 
@@ -684,6 +695,10 @@ var ui = {
     var list = Object.keys(page.functions);
 
     var funcs = page.functions;
+
+    list = list.filter(function(key) {
+      return !funcs[key].excluded;
+    });
 
     list.sort(function(a,b){
       var A = funcs[a];
