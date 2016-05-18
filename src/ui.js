@@ -681,29 +681,22 @@ var ui = {
     var page = stats[fid];
     var tree = ui.trees[fid];
 
-    var keys = Object.keys(page.functions);
+    var list = Object.keys(page.functions);
 
-    var list = keys.slice(0, 20);
-
-    keys.slice(20).forEach(function(k){
-      var l = page.functions[k];
-      list.some(function(m, index){
-        var n = page.functions[m];
-        if (l.falsy + l.truthy > n.falsy + n.truthy) return !!(list[index] = k);
-        return false;
-      });
-    });
+    var funcs = page.functions;
 
     list.sort(function(a,b){
-      var A = page.functions[a];
+      var A = funcs[a];
       A = A.falsy + A.truthy;
-      var B = page.functions[b];
+      var B = funcs[b];
       B = B.falsy + B.truthy;
 
       if (A>B) return -1;
       if (A<B) return 1;
       return 0;
     });
+
+    list = list.slice(0, 20);
 
     var pre = document.createElement('pre');
     pre.id = 'popup';
@@ -712,7 +705,7 @@ var ui = {
       '<div class="close"><span>close</span></div>\n' +
         list.map(function(uid){
           var name = funcNameFrom(tree, uid);
-          var o = page.functions[uid];
+          var o = funcs[uid];
           return '<span class="count">'+bignums(o.falsy+o.truthy)+'</span> - <span class="link" data-uid="'+uid+'">'+name+'</span>';
         }).join('\n');
 
