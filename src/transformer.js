@@ -205,7 +205,7 @@
         var alreadyEscaped = false;
         var returnValue = '';
 
-        if (token.isExpressionStart || token.isCaseKeyword) {
+        if (token.isExpressionStart || token.isCaseKeyword || token.isFuncDeclKeyword) {
           alreadyEscaped = true;
 
           if (!forThumb) {
