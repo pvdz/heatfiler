@@ -349,6 +349,14 @@ var ui = {
         else e.className = 'heat qmark';
       }
     }
+    for (var uid in page.macros) if (page.macros.hasOwnProperty(uid)) {
+      if (ui.inFocus(uid)) {
+        var e = gebi('id-'+uid);
+        all.push({type:'macro', uid:uid, dom:e});
+        if (!e) console.log('error: macro element not found for ',page, uid);
+        else e.className = 'heat macro-name';
+      }
+    }
 
     return all;
   },
@@ -447,6 +455,7 @@ var ui = {
         case 'func': var obj = page.functions[o.uid]; break;
         case 'arg': var obj = page.arguments[o.uid]; break;
         case 'qmark': var obj = page.qmarks[o.uid]; break;
+        case 'macro': var obj = page.macros[o.uid]; break;
         default: throw 'unknown type';
       }
 
@@ -521,13 +530,75 @@ var ui = {
             ' - mid types: '+obj.leftTypes+'\n' +
             '\n'+
             ' - right T/F: '+bignums(obj.rightTruthy)+' / '+bignums(obj.rightFalsy)+
-            ' (abs: '+percent(obj.rightTruthy,obj.allCount  )+'% / '+percent(obj.rightFalsy,obj.allCount)+'%)' +
+            ' (abs: '+percent(obj.rightTruthy,obj.allCount)+'% / '+percent(obj.rightFalsy,obj.allCount)+'%)' +
             ' (rel: '+percent(obj.rightTruthy,max)+'% / '+percent(obj.rightFalsy,max)+'%)\n' +
             ' - right types: '+obj.rightTypes;
 
         if (e.title !== title) {
           e.title = title;
           if (ui.typeAttention(obj.allTypes)) e.style.backgroundColor = 'rgb(255, 100, 255)';
+        }
+      } else if (obj.type === 'macro') {
+        switch (obj.name) {
+          case 'count-ranged':
+            var total = 0;
+            var title = '';
+            for (var i = 0; i < obj.args.length; ++i) {
+              var key = obj.args[i];
+              var now = (obj[key]||0);
+              total += now;
+            }
+            total += (obj[Infinity]||0);
+
+            for (var i = 0; i < obj.args.length; ++i) {
+              var key = obj.args[i];
+              var now = (obj[key]||0);
+              title += '\n<= '+key+': '+bignums(now)+'x (' + percent(now, total)+' %)';
+            }
+            now = (obj[Infinity]||0);
+            title = 'Macro: count (ranged)\nTotal: ' +total+ '\n'+title+'\n>: '+now+'x (' + percent(now, total)+' %)';
+
+            break;
+
+          case 'count-exact':
+            var total = 0;
+            var title = '';
+            for (var i = 0; i < obj.args.length; ++i) {
+              var key = obj.args[i];
+              var now = (obj[key]||0);
+              total += now;
+            }
+            for (var i = 0; i < obj.args.length; ++i) {
+              var key = obj.args[i];
+              var now = (obj[key]||0);
+              title += '\n'+key+': '+bignums(now)+'x (' + percent(now, total)+' %)';
+            }
+            title = 'Macro: count (exact)\nTotal: ' +total+ '\n'+title;
+
+            break;
+
+          case 'count-any':
+            var total = 0;
+            var title = '';
+            var keys = Object.keys(obj.args);
+            for (var i = 0; i < keys.length; ++i) {
+              var key = keys[i];
+              var now = (obj.args[key]||0);
+              total += now;
+            }
+            for (var i = 0; i < keys.length; ++i) {
+              var key = keys[i];
+              var now = (obj.args[key]||0);
+              title += '\n'+key+': '+bignums(now)+'x (' + percent(now, total)+' %)';
+            }
+            title = 'Macro: count (any)\nTotal: ' +total+ '\n'+title;
+
+            break;
+
+          default: throw new Error('Unknown macro name; '+obj.name);
+        }
+        if (e.title !== title) {
+          e.title = title;
         }
       } else {
         title = (obj.epsilon ? 'End of block/case: ':'');

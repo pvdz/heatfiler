@@ -168,6 +168,11 @@
 
         return value;
       };
+      this.globals[_transformer.macro] = global[_transformer.macro] = function(fid, macroName, uid, result, args) {
+        var obj = stats[fid].macros[uid];
+        that.runMacro(macroName, obj, result, obj.args);
+        if (toLocalStorage) tryFlush();
+      };
 
       if (outputFileForNodejs) tryFlush(); // queue timer to make sure stats are flushed at least once... (in case no files are profiled)
     },
@@ -216,6 +221,39 @@
     addType: function(obj, typeProp, typesProp, type){
       if (obj[typeProp].indexOf(type) < 0) obj[typeProp] += ' '+type;
       obj[typesProp][type] = -~obj[typesProp][type]; // -~ is basically ++ with support for if the value is undefined :) Learned it from Jed, blame him.
+    },
+    runMacro: function(macroName, statsObject, result, args) {
+      switch (macroName) {
+        case 'count-ranged':
+          var counts = args;
+          for (var i = 0; i < counts.length; ++i) {
+            var num = counts[i];
+            if (result <= num) {
+              if (!statsObject[num]) statsObject[num] = 0;
+              ++statsObject[num];
+              return;
+            }
+          }
+          if (!statsObject[Infinity]) statsObject[Infinity] = 0;
+          ++statsObject[Infinity];
+          return;
+
+        case 'count-exact':
+          var counts = args;
+          var pos = counts.indexOf(result);
+          if (pos >= 0) {
+            if (!statsObject[result]) statsObject[result] = 0;
+            ++statsObject[result];
+          }
+          return;
+
+        case 'count-any':
+          if (!args[result]) args[result] = 0;
+          ++args[result];
+          return;
+
+        default: throw new Error('unknown macro:' + macroName);
+      }
     },
 
     run: function(fid){

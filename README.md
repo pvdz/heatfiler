@@ -170,6 +170,38 @@ You can click on each result to get a list of functions that matched the result.
 
 Generally speaking, functions with a single return type optimize better. Likewise, functions that receive the same type of arguments in every call optimize better as well.
 
+## Macros
+
+There are a few macros you can use to control additional inspection.
+
+- ``/*HF:count-ranged [<numbers>] `<expression>`*/``
+- ``/*HF:count-ranged [-1, 0, 3..15] `mything.length`*/``
+- ``/*HF:count-ranged [0, 1, 2, 3] `currentFlag()`*/``
+
+- ``/*HF:count-exact [<numbers>] `<expression>`*/``
+- ``/*HF:count-exact [-1, 0, 3..15] `mything.length`*/``
+- ``/*HF:count-exact [0, 1, 2, 3] `currentFlag()`*/``
+
+- ``/*HF:count-any [<numbers>] `<expression>`*/``
+- ``/*HF:count-any [-1, 0, 3..15] `mything.length`*/``
+- ``/*HF:count-any [0, 1, 2, 3] `currentFlag()`*/``
+
+These will make HeatFiler tally up the number of times the expression evaluated to some particular value and display these counts in the result in place of the comment. 
+
+These count based macros pretty much do the same thing; they count value occurrences. `count-ranged` puts each (numeric) value in a bucket, `count-exact` does a `===` match, and `count-any` will count any (stringified) value as is.
+
+The `<expression>` should be a valid JS expression in place of the comment and will be wrapped, as is, with some special metric calls. The expression is assumed to be valid to replace the macro in place. Meaning the surrounding code should be okay with the expression. In particular check if a semi-colon is needed (but don't include it in the comment) and make sure not to put it immediately after return values and such. No effort is made to validate this. The comment is simply replaced as a whole with your expression wrapped in some metrics, all leading to a single expression. Generally use this at the start of a statement and not after a `return` keyword. 
+
+Don't use backticks in the expression, the parser has no escape mechanism. Too much an edge case. Don't blame me if you do anyways and "it works sometimes". It probably didn't work.
+
+The `<numbers>` should be an "array".
+
+- For `count-ranged` this should be a list of numbers, ordered low to high. HeatFiler will take each number to mean "Bigger than the previous number, lesser or equal to the current number". The first number is "preceded" by negative infinity in this sense. You can add a range of integers with two dots; `[0..3]` and separate numbers with comma's.
+- For `count-exact` you can add any value. The `..` expanding trick works here as well. If you want to match strings, quote them. If you have `nn..nn` in your string this will be auto-expanded as well since the code makes no validation effort.
+- For `count-any` this list is not expected, of course.
+
+The parser for these macros is a little rigid. Some edge cases may be a problem but in general you should be fine.
+
 ## Tests
 
 This was more of a quick hack than anything else. There's a simple test suite which I've taken from my JS parser. This does not cover everything (specifically, runtime issues) but it sufficed for me in most cases. Due to the nature of the setup of the tests, certain errors will only show once the code is actually called (right now it only creates a function to safely check for syntax errors).

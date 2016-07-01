@@ -11,20 +11,28 @@
     nameArgCheck: '$arg$',
     nameReturnCheck: '$return$',
     nameQmark: '$qmark$',
-    switchVar: '$switchvar$',
+    switchVar: '$switchvar$', // not a function
     caseCheck: '$case$',
+    macro: '$macro$',
+
 
     process: function(fid, input, stats){
       var tokens = transformer.parse(input);
       transformer.initializeStats(fid, tokens, stats);
-      return transformer.transform(fid, tokens);
+      return transformer.transform(fid, tokens, stats);
     },
     parse: function(input){
       return Par.parse(input, {saveTokens:true, createBlackStream: true}).tok.tokens;
     },
-    transform: function(fid, tree){
+    transform: function(fid, tree, stats){
       tree.forEach(function(o){ o.oValue = o.value; });
       tree.forEach(function(token,index){
+        if (token.isMacro) { // multi-line comment starting with `/*HF:`
+          var statsObj = stats[fid].macros[index];
+
+          token.value = transformer.macro+'('+fid+', "'+statsObj.name+'", '+index+', ('+statsObj.code+'))';
+        }
+
         if (token.isElseToken) {
           var t = token;
           do t = tree[t.white+1];
@@ -115,12 +123,12 @@
             token.value = '{\nvar ' + switchVar + ' = ' + header + ';\nswitch';
             token.rhc += '}';
           } else if (token.value === 'function') {
-            if (token.parentFuncToken.isGlobal) tree[0].value = transformer.nameStatementCount+'('+fid+', '+index+', true); ' + tree[0].value;
-            else token.parentFuncToken.lhc.value += transformer.nameStatementCount+'('+fid+', '+index+', true); ';
+            if (token.parentFuncToken.isGlobal) tree[0].value = ';'+transformer.nameStatementCount+'('+fid+', '+index+', true); ' + tree[0].value;
+            else token.parentFuncToken.lhc.value += ';'+transformer.nameStatementCount+'('+fid+', '+index+', true); ';
           } else {
             token.value =
               (token.sameToken?'':' { ') +
-              transformer.nameStatementCount+'('+fid+', '+index+'); ' +
+              ';'+transformer.nameStatementCount+'('+fid+', '+index+'); ' +
               token.value;
           }
         }
@@ -142,8 +150,9 @@
     },
     escape: function(s){ return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); },
     initializeStats: function(fid, tree, stats){
-      if (!stats[fid]) stats[fid] = {statements:{}, expressions:{}, functions:{}, arguments:{}, qmarks:{}};
+      if (!stats[fid]) stats[fid] = {statements:{}, expressions:{}, functions:{}, arguments:{}, qmarks:{}, macros:{}};
       var fstats = stats[fid];
+
       tree.forEach(function(token,index){
         if (token.isFunctionMarker) {
           var obj = fstats.functions[index] = {type:'func', types:'', typeCount:{}, truthy:0, falsy:0};
@@ -173,6 +182,43 @@
             allFalsy: 0,   leftFalsy: 0,  rightFalsy: 0,  condFalsy: 0,
           };
         }
+        if (token.type === WHITE && token.value.slice(0, 5) === '/*HF:') {
+          token.isMacro = true;
+
+          var match;
+          if (match = token.value.match(/\/\*\s*HF:(count-(?:exact|ranged))\s*(\[[^\]]*?\])\s*`([^`]*?)`\s*\*\//)) {
+            token.isMacro = true;
+
+            var macroName = match[1];
+            var counts = match[2];
+            var code = match[3];
+
+            if (macroName !== 'count-exact' && macroName !== 'count-ranged') throw new Error('unknown count macro subtype: '+macroName)
+
+            // assuming `counts` is a valid js array apart from double dots,
+            // we can easily replace the double dots with the extrapolated list of ints
+            counts = counts.replace(/(\d+)\s*..\s*(\d+)/g, function(a,b,c){
+              var s = [];
+              for (var i = parseInt(a, 10), n = parseInt(b, 10); i <= n; ++i) {
+                s.push(i);
+              }
+              return s.join(',');
+            });
+
+            fstats.macros[token.white] = {type: 'macro', name: macroName, args: JSON.parse(counts), code: code};
+          } else if (match = token.value.match(/\/\*\s*HF:(count-any)\s*`([^`]*?)`\s*\*\//)) {
+            token.isMacro = true;
+
+            var macroName = match[1];
+            var code = match[2];
+
+            // results will be stashed in args object
+            fstats.macros[token.white] = {type: 'macro', name: macroName, args: {}, code: code};
+          } else {
+            console.log('next error for:', token);
+            throw new Error('Unknown macro:', token.value);
+          }
+        }
       });
     },
     // pretty much same structure as transform()... (so if that function changes..)
@@ -199,13 +245,18 @@
       var arr = [];
       if (from === false) from = 0;
       if (to === false) to = tree.length;
+
       for (var index=from; index<to; ++index) {
         var token = tree[index];
 
         var alreadyEscaped = false;
         var returnValue = '';
-
-        if (token.isExpressionStart || token.isCaseKeyword || token.isFuncDeclKeyword) {
+        if (token.type === WHITE && token.value.slice(0, 5) === '/*HF:') {
+          alreadyEscaped = true;
+          returnValue = transformer.escape(token.value)
+          returnValue = returnValue.replace(/^\/\*(HF:[\w-]+)/, '/*<span id="id-'+index+'">$1</span>');
+          returnValue = returnValue.replace(/`([^`])`/, '`<span class="macro-code">$1</span>`');
+        } else if (token.isExpressionStart || token.isCaseKeyword || token.isFuncDeclKeyword) {
           alreadyEscaped = true;
 
           if (!forThumb) {
