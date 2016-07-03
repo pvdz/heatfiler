@@ -85,7 +85,7 @@ var ui = {
     var fid = hf.profiledFidMap[showFileIndex];
 
     hf.exposeGlobals(toLocalStorage);
-    hf.toLocalStorage('meta');
+    if (toLocalStorage) hf.toLocalStorage('meta');
     hf.run(fid);
   },
 
