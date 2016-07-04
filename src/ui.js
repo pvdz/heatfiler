@@ -486,6 +486,31 @@ var ui = {
           else if (ui.modeCodeCoverage) e.style.backgroundColor = '';
           else if (ui.typeAttention(obj.types)) e.style.backgroundColor = 'rgb(255, 100, 255)';
         }
+      } else if (obj.isSwitch) {
+
+        title = 'Switched: '+bignums(obj.count)+' ('+percent(obj.count, max)+'%)\n';
+        title += 'Cases: '+obj.caseCounts.length+'\n';
+        title += 'Counts: '+obj.caseCounts.map(bignums).join(', ')+'\n';
+        title += 'Passes: '+obj.casePasses.map(bignums).join(', ')+'\n';
+        var allPasses = obj.casePasses.reduce(function(t, n){ return t+n; });
+        var fails = obj.count-allPasses;
+        title += 'Switch passed '+bignums(allPasses)+' times and defaulted '+bignums(fails)+' times\n';
+        var sum = 0;
+        obj.casePasses.forEach(function(n,i){ sum += n * (i+1); });
+        sum += fails * (obj.caseCounts.length+1); // defaults
+        title += 'Average cases tested per check: ' + (Math.floor(sum*10 / obj.count)/10) + ' / ' + obj.caseCounts.length;
+
+        if (e.title !== title) {
+          e.title = title;
+          if (excluded) {
+            e.style.backgroundColor = 'inherit';
+          } else if (ui.modeCodeCoverage) {
+            e.style.backgroundColor = '';
+          } else {
+            var n = (255-Math.floor((obj.count / max)*255));
+            e.style.backgroundColor = 'rgb(255, '+n+', '+n+')';
+          }
+        }
       } else if (obj.type === 'func') {
         var count = obj.truthy + obj.falsy;
         var funcname = e.getAttribute('data-func-name');

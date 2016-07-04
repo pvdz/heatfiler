@@ -88,10 +88,18 @@
           while (t && t.type === WHITE) t = tree[t.white+1];
 
           // wrap case expression in special call
-          token.value += ' '+transformer.caseCheck+'('+fid+', '+ index +', (';
-          token.colonToken.value = '), '+switchVar+')'+token.colonToken.value;
-
-//          if (t) delete t.isExpressionStart; // prevent useless wrap since we're already wrapping here
+          token.value += ' ' +
+            transformer.caseCheck+'('+
+              fid+', '+
+              index +', ' +
+              '(';
+          // <case expression here>
+          token.colonToken.value = '' +
+              '), '+
+              switchVar+', '+
+              token.switchToken.white+', '+
+              token.caseIndex+
+            ')'+token.colonToken.value;
         }
 
         if (token.isStatementStart) {
@@ -120,7 +128,11 @@
               })
               .join('');
 
-            token.value = '{\nvar ' + switchVar + ' = ' + header + ';\nswitch';
+            token.value = '' +
+              '{\n' +
+              'var ' + switchVar + ' = (' + header + ');\n'+
+              'switch' +
+              '';
             token.rhc += '}';
           } else if (token.value === 'function') {
             if (token.parentFuncToken.isGlobal) tree[0].value = ';'+transformer.nameStatementCount+'('+fid+', '+index+', true); ' + tree[0].value;
@@ -160,11 +172,22 @@
         }
         if (token.isExpressionStart || token.isCaseKeyword ) {
           fstats.expressions[index] = {type:'expr', count:0, types:'', typeCount:{}, truthy:0, falsy:0};
+          if (token.isCaseKeyword) {
+            var caseCounts = fstats.statements[token.switchToken.white].caseCounts; // defined below
+            token.caseIndex = caseCounts.length;
+            caseCounts.push(0);
+            fstats.statements[token.switchToken.white].casePasses.push(0);
+          }
         }
         if (token.isStatementStart) {
           var obj = fstats.statements[token.isForElse || index] = {type: 'stmt', count: 0, types:'', typeCount: {}};
           if (token.sameToken) obj.epsilon = true;
           if (token.isReturnKeyword) obj.isReturn = true;
+          if (token.isSwitchKeyword) {
+            obj.isSwitch = true;
+            obj.caseCounts = [];
+            obj.casePasses = [];
+          }
         }
         if (token.argTokens) {
           token.argTokens.forEach(function(t){

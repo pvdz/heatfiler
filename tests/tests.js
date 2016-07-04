@@ -663,4 +663,9 @@ var good = [
   ["a = h.y ? h.y(c[j]) : a = {id:+g};", "probably double embedded assignment"],
   ["(function(){}())", "caused a crash"],
   ["+function(){}", "caused a crash"],
+
+  // macro
+  ["function foo(x) {\n/*HF:count-ranged [0,1,2] `x`*/\n/*HF:count-exact [0,1,2] `x`*/\n/*HF:count-any `x`*/\n}\nfoo(1);\nfoo(2);\nfoo(1);", "count macros"],
+  ["function f() {\n  switch (25, 30) {\n    case 10: return 1;\n    case 20: return 2;\n    case 25: return 3;\n    default: return 4;\n  }\n}", "switching"],
 ];
+

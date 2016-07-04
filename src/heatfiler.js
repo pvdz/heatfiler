@@ -81,7 +81,7 @@
 
       // we store a single instance of each function so we can copy that to global (web) or to each file (node)
 
-      this.globals[_transformer.nameStatementCount] = global[_transformer.nameStatementCount] = function(fid, uid, funcDeclared){
+      var $stmt$ = this.globals[_transformer.nameStatementCount] = global[_transformer.nameStatementCount] = function(fid, uid, funcDeclared){
         if (funcDeclared) {
           ++stats[fid].functions[uid].declared;
         } else {
@@ -89,11 +89,14 @@
         }
         if (toLocalStorage) tryFlush();
       };
-      this.globals[_transformer.caseCheck] = global[_transformer.caseCheck] = function(fid, uid, value, switchValue){
-        global[_transformer.nameExpressionCount](fid, uid, value === switchValue);
+      this.globals[_transformer.caseCheck] = global[_transformer.caseCheck] = function(fid, uid, value, switchValue, switchUid, caseIndex){
+        $expr$(fid, uid, value === switchValue);
+        if (caseIndex === 0) $stmt$(fid, switchUid);
+        stats[fid].statements[switchUid].caseCounts[caseIndex]++;
+        if (value === switchValue) stats[fid].statements[switchUid].casePasses[caseIndex]++;
         return value;
       };
-      this.globals[_transformer.nameExpressionCount] = global[_transformer.nameExpressionCount] = function(fid, uid, value){
+      var $expr$ = this.globals[_transformer.nameExpressionCount] = global[_transformer.nameExpressionCount] = function(fid, uid, value){
         var obj = stats[fid].expressions[uid];
         ++obj.count;
         that.typeCheck(obj, value);
