@@ -22,7 +22,7 @@ I've also added three integration examples. Open one of:
 - http://heatfiler.qfox.nl/parallax/
 - http://heatfiler.qfox.nl/js1k/
 
-and then open [heatfiler](http://localhost/heatfiler/src/#listen,start) in another tab (if not starting, click "Listen" tab and go). The heatmap updates real-time.
+and then open [heatfiler](http://localhost/heatfiler/src/#listen,immediately) in another tab (if not starting, click "Listen" tab and go). The heatmap updates real-time.
 
 ## How it works
 

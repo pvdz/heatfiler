@@ -291,10 +291,12 @@ var ui = {
 
     var pos = args.indexOf('start');
     if (pos >= 0) args.splice(pos, 1);
-    else pos = args.length;
+
+    pos = args.indexOf('immediately');
+    if (pos >= 0) args.splice(pos, 1);
 
     var cb = qs('#mode-auto-start input');
-    if (cb && cb.checked) args.splice(pos, 0, 'start');
+    if (cb && cb.checked) args.push('immediately');
 
     location.hash = args.join(',');
   },
@@ -727,15 +729,17 @@ var ui = {
   updateHash: function(target, targetTab){
     var args = location.hash.split(',');
 
-    if (target === 'result') targetTab.className = 'enabled '+targetTab.className;
-    else if (target === 'run') {
+    if (target === 'result') {
+      targetTab.className = 'enabled '+targetTab.className;
+    } else if (target === 'run') {
       location.hash =
         'run,'+
         (gebi('run-code').checked?'code':'files')+','+
         (gebi('run-here').checked?'here':'tab')+
-        (args.indexOf('start') >= 0 ? ',start' : '');
+        ((args.indexOf('start') >= 0 || args.indexOf('immediately') >= 0) ? ',immediately' : '');
+    } else {
+      location.hash = target + ((args.indexOf('start') >= 0 || args.indexOf('immediately') >= 0) ? ',immediately' : '');
     }
-    else location.hash = target + (args.indexOf('start') >= 0 ? ',start' : '');
   },
   updatePlaceholder: function(forCode){
     if (forCode) {
@@ -1286,7 +1290,7 @@ if (location.hash) {
   }
   ui.openTab(target);
 
-  if (args.indexOf('start') >= 0) {
+  if (args.indexOf('start') >= 0 || args.indexOf('immediately') >= 0) {
     // the timeout is kind of a hack, but we need to wait for localstorage data to be loaded into UI
     setTimeout(function(){
       console.log('Auto starting (url hash contains `start`)');
@@ -1300,4 +1304,4 @@ ui.updatePlaceholder(gebi('run-code').checked);
 ui.updateRunInput(gebi('run-code').checked);
 qs('.nodejs.page .input').value = localStorage.getItem(ui.localStorageOutputFileKey);
 // if start is in hash, toggle menu option
-if (location.hash.split(',').indexOf('start') >= 0) qs('#mode-auto-start input').click();
+if (location.hash.match(/start|immediately/)) qs('#mode-auto-start input').click();
