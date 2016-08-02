@@ -1,3 +1,7 @@
+// avg ifs checked
+// avg loops per while/function
+// which return used + counts
+
 (function(exports, Par){
   var ASI = 15;
   var WHITE = 18;
@@ -14,7 +18,13 @@
     switchVar: '$switchvar$', // not a function
     caseCheck: '$case$',
     macro: '$macro$',
+    loopCount: '$loop$',
 
+    typeSwitch: 'S',
+    typeLoop: 'L',
+    typeIf: 'I',
+    typeReturn: 'R',
+    typeCase: 'C',
 
     process: function(fid, input, stats){
       var tokens = transformer.parse(input);
@@ -25,7 +35,7 @@
       return Par.parse(input, {saveTokens:true, createBlackStream: true}).tok.tokens;
     },
     transform: function(fid, tree, stats){
-      tree.forEach(function(o){ o.oValue = o.value; });
+      //tree.forEach(function(o){ o.ovalue = o.value; });
       tree.forEach(function(token,index){
         if (token.isMacro) { // multi-line comment starting with `/*HF:`
           var statsObj = stats[fid].macros[index];
@@ -98,7 +108,9 @@
               '), '+
               switchVar+', '+
               token.switchToken.white+', '+
-              token.caseIndex+
+              token.caseIndex+', '+
+              token.ownerCountIndex+', '+
+              token.ownerCountFuncId+
             ')'+token.colonToken.value;
         }
 
@@ -130,17 +142,24 @@
 
             token.value = '' +
               '{\n' +
+              transformer.nameStatementCount+'('+fid+', '+index+', "'+token.ownerCountType+'", '+token.ownerCountIndex+', '+token.ownerCountFuncId+');\n'+
               'var ' + switchVar + ' = (' + header + ');\n'+
               'switch' +
               '';
-            token.rhc += '}';
+            token.rhc += '}\n';
           } else if (token.value === 'function') {
             if (token.parentFuncToken.isGlobal) tree[0].value = ';'+transformer.nameStatementCount+'('+fid+', '+index+', true); ' + tree[0].value;
             else token.parentFuncToken.lhc.value += ';'+transformer.nameStatementCount+'('+fid+', '+index+', true); ';
           } else {
             token.value =
               (token.sameToken?'':' { ') +
-              ';'+transformer.nameStatementCount+'('+fid+', '+index+'); ' +
+              ';'+transformer.nameStatementCount+'('+
+                fid + ', ' +
+                index +
+                (token.ownerCountType?', "'+token.ownerCountType+'", '+token.ownerCountIndex+', '+token.ownerCountFuncId:'')+
+                // arg is ignored but we dont know if statement or expr for loop counter.
+                (token.loopIndex>=0?','+transformer.loopCount+'('+fid+', '+token.loopIndex+', '+token.loopFunc+')':'')+
+              '); ' +
               token.value;
           }
         }
@@ -167,7 +186,19 @@
 
       tree.forEach(function(token,index){
         if (token.isFunctionMarker) {
-          var obj = fstats.functions[index] = {type:'func', types:'', typeCount:{}, truthy:0, falsy:0};
+          var obj = fstats.functions[index] = {
+            type: 'func',
+            types: '',
+            typeCount: {},
+            truthy: 0,
+            falsy: 0,
+            ifs: [],
+            loops: [],
+            looped: [],
+            switches: [],
+            cases: [],
+            returns: []
+          };
           if (token.isFuncDeclKeyword) obj.declared = 0;
         }
         if (token.isExpressionStart || token.isCaseKeyword ) {
@@ -177,16 +208,36 @@
             token.caseIndex = caseCounts.length;
             caseCounts.push(0);
             fstats.statements[token.switchToken.white].casePasses.push(0);
+
+            var func = fstats.functions[token.switchToken.ownerFuncToken.white];
+            token.ownerCountIndex = func.cases.length;
+            token.ownerCountType = transformer.typeCase;
+            token.ownerCountFuncId = token.switchToken.ownerFuncToken.white;
+            func.cases.push(0);
           }
         }
         if (token.isStatementStart) {
           var obj = fstats.statements[token.isForElse || index] = {type: 'stmt', count: 0, types:'', typeCount: {}};
           if (token.sameToken) obj.epsilon = true;
-          if (token.isReturnKeyword) obj.isReturn = true;
+          if (token.isReturnKeyword) {
+            obj.isReturn = true;
+
+            var func = fstats.functions[token.ownerFuncToken.white];
+            token.ownerCountIndex = func.returns.length;
+            token.ownerCountType = transformer.typeReturn;
+            token.ownerCountFuncId = token.ownerFuncToken.white;
+            func.returns.push(0);
+          }
           if (token.isSwitchKeyword) {
             obj.isSwitch = true;
             obj.caseCounts = [];
             obj.casePasses = [];
+
+            var func = fstats.functions[token.ownerFuncToken.white];
+            token.ownerCountIndex = func.switches.length;
+            token.ownerCountType = transformer.typeSwitch;
+            token.ownerCountFuncId = token.ownerFuncToken.white;
+            func.switches.push(0);
           }
         }
         if (token.argTokens) {
@@ -241,6 +292,24 @@
             console.log('next error for:', token);
             throw new Error('Unknown macro:', token.value);
           }
+        }
+        if (token.value === 'if') {
+          var func = fstats.functions[token.ownerFuncToken.white];
+          token.isIfKeyword = true;
+          token.ownerCountIndex = func.ifs.length;
+          token.ownerCountType = transformer.typeIf;
+          token.ownerCountFuncId = token.ownerFuncToken.white;
+          func.ifs.push(0);
+        }
+        if ((token.value === 'while' && !token.belongsToDo) || token.value === 'for' || token.value === 'do') {
+          var func = fstats.functions[token.ownerFuncToken.white];
+          token.isLoopKeyword = true;
+          token.ownerCountIndex = func.loops.length;
+          token.ownerCountType = transformer.typeLoop;
+          token.ownerCountFuncId = token.ownerFuncToken.white;
+          func.loops.push(0);
+          token.firstStatement.loopIndex = token.ownerCountIndex;
+          token.firstStatement.loopFunc = token.ownerCountFuncId;
         }
       });
     },

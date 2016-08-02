@@ -525,6 +525,12 @@ var ui = {
           ui.statsToString(obj.typeCount)+'\n'+
           'T/F: '+bignums(obj.truthy)+' / '+bignums(obj.falsy) +
           ' ('+percent(obj.truthy,count)+'% / '+percent(obj.falsy,count)+'%)\n' +
+          'Statements stats:\n'+
+          '  Switches: '+obj.switches.length+'; ran: '+obj.switches.map(bignums).join(', ')+'\n'+
+          '  Cases: '+obj.cases.length+'; ran: '+obj.cases.map(bignums).join(', ')+'\n'+
+          '  Ifs: '+obj.ifs.length+'; ran: '+obj.ifs.map(bignums).join(', ')+'\n'+
+          '  Loops: '+obj.loops.length+'; ran: '+obj.loops.map(bignums).join(', ')+'\n'+
+          ' Returns: '+obj.returns.length+'; ran: '+obj.returns.map(bignums).join(', ')+'\n'+
           '(Click to focus on function)';
 
         if (ui.modeCodeCoverage) title += ' '; // force update when toggling code coverage

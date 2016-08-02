@@ -24,6 +24,7 @@
     stats: null,
     profiledFidMap: null,
 
+    // these functions are exposed externally
     globals: null,
 
     localCode: function(input){
@@ -81,18 +82,33 @@
 
       // we store a single instance of each function so we can copy that to global (web) or to each file (node)
 
-      var $stmt$ = this.globals[_transformer.nameStatementCount] = global[_transformer.nameStatementCount] = function(fid, uid, funcDeclared){
+      this.globals[_transformer.nameStatementCount] = global[_transformer.nameStatementCount] = function(fid, uid, ownerType, ownerIndex, ownerFuncId, funcDeclared){
         if (funcDeclared) {
           ++stats[fid].functions[uid].declared;
         } else {
           ++stats[fid].statements[uid].count;
+          switch (ownerType) {
+            case transformer.typeSwitch:
+              ++stats[fid].functions[ownerFuncId].switches[ownerIndex];
+              break;
+            case transformer.typeIf:
+              ++stats[fid].functions[ownerFuncId].ifs[ownerIndex];
+              break;
+            case transformer.typeLoop:
+              ++stats[fid].functions[ownerFuncId].loops[ownerIndex];
+              break;
+            case transformer.typeReturn:
+              ++stats[fid].functions[ownerFuncId].returns[ownerIndex];
+              break;
+            case transformer.typeCase: throw new Error('expecting case handled elsewhere');
+          }
         }
         if (toLocalStorage) tryFlush();
       };
-      this.globals[_transformer.caseCheck] = global[_transformer.caseCheck] = function(fid, uid, value, switchValue, switchUid, caseIndex){
+      this.globals[_transformer.caseCheck] = global[_transformer.caseCheck] = function(fid, uid, value, switchValue, switchUid, caseIndex, ownerIndex, ownerFuncId){
         $expr$(fid, uid, value === switchValue);
-        if (caseIndex === 0) $stmt$(fid, switchUid);
         stats[fid].statements[switchUid].caseCounts[caseIndex]++;
+        ++stats[fid].functions[ownerFuncId].returns[ownerIndex];
         if (value === switchValue) stats[fid].statements[switchUid].casePasses[caseIndex]++;
         return value;
       };
@@ -175,6 +191,9 @@
         var obj = stats[fid].macros[uid];
         that.runMacro(macroName, obj, result, obj.args);
         if (toLocalStorage) tryFlush();
+      };
+      this.globals[_transformer.loopCount] = global[_transformer.loopCount] = function(fid, loopIndex, ownerFuncId) {
+        ++stats[fid].functions[ownerFuncId].looped[loopIndex];
       };
 
       if (outputFileForNodejs) tryFlush(); // queue timer to make sure stats are flushed at least once... (in case no files are profiled)
