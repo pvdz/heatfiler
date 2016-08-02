@@ -11,7 +11,9 @@ The initial version was hacked together in about two days. The current version c
 
 ## Demo
 
-See [heatfiler.qfox.nl](http://localhost/heatfiler/src/#run,files,here) for a live demo of the profiler.
+See [heatfiler.qfox.nl](http://heatfiler.qfox.nl/#run,files,here) for a live demo of the profiler.
+
+Alternatively you can visit [the github version](https://qfox.github.io/heatfiler/src/index.html#run,files,here) which is probably more up to date :)
 
 I've also added three integration examples. Open one of:
 - http://heatfiler.qfox.nl/dragon/
@@ -30,7 +32,7 @@ The code coverage does almost exactly the same thing as the profiler, except, of
 
 ## Build
 
-Note that the build directory contains a built file (`heatfiler-build.js`). This file (up to date) already includes zeparser2 and is a single .js resource to include in your projects, or nodejs. It's not minified, but I don't think that is important since this is a debugging tool.
+Note that the build directory contains a built file (`heatfiler-build.js`). This file (should be up to date, but check commits to be sure) already includes zeparser2 and is a single .js resource to include in your projects, or nodejs. It's not minified, but I don't think that is important since this is a debugging tool. If the build is not up to date or you just want to build it yourself you can run `bin/build.js` from the project root.
 
 ## UI
 
@@ -65,7 +67,8 @@ The results tab has a few gimmicks that I'd like to highlight:
 - Live updating heatmap
 - Mouse hover for stats
 - Expressions have truthy, falsy, and type stats
-- Functions show cumulative return value stats
+- Functions show cumulative return value stats and other stats for key statements
+- Switches show case choice stats
 - Browser blocked status spinner
 - Exclude functions from stats
 - Focus on functions
@@ -101,6 +104,8 @@ The value of expressions are also shown, either by an accumulated "truthy" or "f
 
 __Functions__:
 For functions the accumulated T/F is shown for all `return`s, explicit or implicit. The "types" can also include `implicit`, for implicit returns. They could be a code smell.
+
+It also shows you how many times certain statement types inside that function were executed, like loops and switches.
 
 Function declarations also display the declaration count as a separate value from the call count. This is because a function might be declared but never invoked (due to hoisting or simply never being called).
 
