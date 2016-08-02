@@ -926,9 +926,8 @@
 
 //######### lib/par.js #########
 
-// If you see magic numbers and bools all over the place, it means this
-// file has been post-processed by a build script. If you want to read
-// this file, see https://github.com/qfox/zeparser2
+// this is a special modified version of ZeParser2 that adds meta data to
+// the token stream (-> array) that is returned.
 (function(exports){
   var Tok = exports.Tok || require(__dirname+'/tok.js').Tok;
 
@@ -1124,6 +1123,7 @@
       }
 
       if (start.isStatementStart) {
+        start.ownerFuncToken = funcToken;
         if (tok.lastToken === start) {
           start.sameToken = true;
         } else {
@@ -1191,10 +1191,12 @@
 
       return PARSEDSOMETHING;
     },
-    parseStatementHeader: function(funcToken){
+    parseStatementHeader: function(funcToken, keywordToken){
       var tok = this.tok;
+      if (keywordToken) keywordToken.lhp = tok.lastToken;
       tok.mustBeNum(ORD_OPEN_PAREN, NEXTTOKENCANBEREGEX);
       this.parseExpressions(funcToken);
+      if (keywordToken) keywordToken.rhp = tok.lastToken;
       tok.mustBeNum(ORD_CLOSE_PAREN, NEXTTOKENCANBEREGEX);
     },
 
@@ -1256,8 +1258,12 @@
       // do <stmt> while ( <exprs> ) ;
 
       var tok = this.tok;
+      var doken = foken = tok.lastToken;
       tok.nextExpr(); // do
+      doken.firstStatement = tok.lastToken;
       this.parseStatement(inFunction, INLOOP, inSwitch, labelSet, REQUIRED, funcToken);
+      doken.lastStatement = tok.black[tok.lastToken.black - 1];
+      tok.lastToken.belongsToDo = true;
       tok.mustBeString('while', NEXTTOKENCANBEDIV);
       tok.mustBeNum(ORD_OPEN_PAREN, NEXTTOKENCANBEREGEX);
       this.parseExpressions(funcToken);
@@ -1267,9 +1273,13 @@
     parseWhile: function(inFunction, inLoop, inSwitch, labelSet, funcToken){
       // while ( <exprs> ) <stmt>
 
-      this.tok.nextPunc();
+      var tok = this.tok;
+      var woken = foken = tok.lastToken;
+      tok.nextPunc();
       this.parseStatementHeader(funcToken);
+      woken.firstStatement = tok.lastToken;
       this.parseStatement(inFunction, INLOOP, inSwitch, labelSet, REQUIRED, funcToken);
+      woken.lastStatement = tok.black[tok.lastToken.black - 1];
     },
     parseFor: function(inFunction, inLoop, inSwitch, labelSet, funcToken){
       // for ( <expr-no-in-=> in <exprs> ) <stmt>
@@ -1280,6 +1290,7 @@
       var state = NOPARSE;
 
       var tok = this.tok;
+      var foken = tok.tokens[tok.tokens.length-1];
       tok.nextPunc(); // for
       tok.mustBeNum(ORD_OPEN_PAREN, NEXTTOKENCANBEREGEX);
 
@@ -1298,7 +1309,9 @@
       }
 
       tok.mustBeNum(ORD_CLOSE_PAREN, NEXTTOKENCANBEREGEX);
+      foken.firstStatement = tok.lastToken;
       this.parseStatement(inFunction, INLOOP, inSwitch, labelSet, REQUIRED, funcToken);
+      foken.lastStatement = tok.black[tok.lastToken.black - 1];
     },
     parseForEachHeader: function(funcToken){
       // <expr> ; <expr> ) <stmt>
@@ -1418,31 +1431,40 @@
       // switch ( <exprs> ) { <switchbody> }
 
       var tok = this.tok;
+      var switchToken = tok.lastToken;
+      switchToken.isSwitchKeyword = true;
       tok.nextPunc();
-      this.parseStatementHeader(funcToken);
+      this.parseStatementHeader(funcToken, switchToken);
+      switchToken.lhc = tok.lastToken;
       tok.mustBeNum(ORD_OPEN_CURLY, NEXTTOKENCANBEREGEX);
-      this.parseSwitchBody(inFunction, inLoop, INSWITCH, labelSet, funcToken);
+      this.parseSwitchBody(inFunction, inLoop, INSWITCH, labelSet, funcToken, switchToken);
+      switchToken.rhc = tok.lastToken;
       tok.mustBeNum(ORD_CLOSE_CURLY, NEXTTOKENCANBEREGEX);
     },
-    parseSwitchBody: function(inFunction, inLoop, inSwitch, labelSet, funcToken){
+    parseSwitchBody: function(inFunction, inLoop, inSwitch, labelSet, funcToken, switchToken){
       // [<cases>] [<default>] [<cases>]
 
       // default can go anywhere...
-      this.parseCases(inFunction, inLoop, inSwitch, labelSet, funcToken);
+      this.parseCases(inFunction, inLoop, inSwitch, labelSet, funcToken, switchToken);
       if (this.tok.nextPuncIfString('default')) {
         this.parseDefault(inFunction, inLoop, inSwitch, labelSet, funcToken);
-        this.parseCases(inFunction, inLoop, inSwitch, labelSet, funcToken);
+        this.parseCases(inFunction, inLoop, inSwitch, labelSet, funcToken, switchToken);
       }
     },
-    parseCases: function(inFunction, inLoop, inSwitch, labelSet, funcToken){
+    parseCases: function(inFunction, inLoop, inSwitch, labelSet, funcToken, switchToken){
       var tok = this.tok;
+      var caseToken = tok.lastToken;
       while (tok.nextPuncIfString('case')) {
-        this.parseCase(inFunction, inLoop, inSwitch, labelSet, funcToken);
+        caseToken.isCaseKeyword = true;
+        caseToken.switchToken = switchToken;
+        this.parseCase(inFunction, inLoop, inSwitch, labelSet, funcToken, caseToken);
+        caseToken = tok.lastToken;
       }
     },
-    parseCase: function(inFunction, inLoop, inSwitch, labelSet, funcToken){
+    parseCase: function(inFunction, inLoop, inSwitch, labelSet, funcToken, caseToken){
       // case <value> : <stmts-no-case-default>
       this.parseExpressions(funcToken);
+      caseToken.colonToken = this.tok.lastToken;
       this.tok.mustBeNum(ORD_COLON, NEXTTOKENCANBEREGEX);
       this.parseStatements(inFunction, inLoop, inSwitch, labelSet, funcToken);
     },
@@ -1516,18 +1538,39 @@
       var funcToken = tok.lastToken;
       funcToken.isFunctionMarker = true; // "marker" -> getters/setters
       funcToken.lastExpressionStart = [];
+      funcToken.textName = 'unknown'; // we'll try to resolve the func name, may not work though...
       if (forFunctionDeclaration) {
         funcToken.isFuncDeclKeyword = true;
         funcToken.parentFuncToken = parentFuncToken;
       }
+
+      // for var/prop resolving after the ident
+      var prev = tok.black[tok.black.length-2];
+      var prevprev = tok.black[tok.black.length-3];
+
       tok.nextPunc(); // 'function'
       if (tok.isType(IDENTIFIER)) { // name
         if (this.isReservedIdentifier(DONTIGNOREVALUES)) throw 'function name is reserved';
         tok.lastToken.funcToken = funcToken;
+        tok.lastToken.isFuncDeclName = true;
+        funcToken.textName = tok.lastToken.value;
         tok.nextPunc();
       } else if (forFunctionDeclaration) {
         throw 'function declaration name is required';
       }
+
+      // desperately try to get the name... so; is it a object property or var/prop assignment?
+      // note: this assumes heatfiler, which always gets a black token stream... (-> tok.black)
+      if (prev && (prev.value === '=' || prev.value === ':')) {
+        if (prevprev.type === IDENTIFIER) {
+          if (!funcToken.textName || funcToken.textName === 'unknown') {
+            funcToken.textName = prevprev.value;
+          } else {
+            funcToken.altTextName = prevprev.value;
+          }
+        }
+      }
+
       this.parseFunctionRemainder(-1, forFunctionDeclaration, funcToken);
 
       if (forFunctionDeclaration) funcToken.rhc.isStatementStop = -1; // becomes 0 in parseStatement
@@ -2348,29 +2391,51 @@
 
 //######### src/transformer.js #########
 
+// avg ifs checked
+// avg loops per while/function
+// which return used + counts
+
 (function(exports, Par){
   var ASI = 15;
   var WHITE = 18;
   var IDENTIFIER = 13;
   var NUMBER = 7;
+  var REGEX = 8;
+  var STRING = 10;
   var transformer = {
     nameStatementCount: '$statement$',
     nameExpressionCount: '$expression$',
     nameArgCheck: '$arg$',
     nameReturnCheck: '$return$',
     nameQmark: '$qmark$',
+    switchVar: '$switchvar$', // not a function
+    caseCheck: '$case$',
+    macro: '$macro$',
+    loopCount: '$loop$',
+
+    typeSwitch: 'S',
+    typeLoop: 'L',
+    typeIf: 'I',
+    typeReturn: 'R',
+    typeCase: 'C',
 
     process: function(fid, input, stats){
       var tokens = transformer.parse(input);
       transformer.initializeStats(fid, tokens, stats);
-      return transformer.transform(fid, tokens);
+      return transformer.transform(fid, tokens, stats);
     },
     parse: function(input){
-      return Par.parse(input, {saveTokens:true}).tok.tokens;
+      return Par.parse(input, {saveTokens:true, createBlackStream: true}).tok.tokens;
     },
-    transform: function(fid, tree){
-      tree.forEach(function(o){ o.oValue = o.value; });
+    transform: function(fid, tree, stats){
+      //tree.forEach(function(o){ o.ovalue = o.value; });
       tree.forEach(function(token,index){
+        if (token.isMacro) { // multi-line comment starting with `/*HF:`
+          var statsObj = stats[fid].macros[index];
+
+          token.value = transformer.macro+'('+fid+', "'+statsObj.name+'", '+index+', ('+statsObj.code+'))';
+        }
+
         if (token.isElseToken) {
           var t = token;
           do t = tree[t.white+1];
@@ -2418,14 +2483,76 @@
           token.value = transformer.nameReturnCheck+'('+fid+','+token.funcToken.white+', -1, void 0, true);' + token.value;
         }
 
+        if (token.isCaseKeyword) {
+          var switchVar = transformer.switchVar + '_' + token.switchToken.white;
+
+          // find start of expression
+          var t = tree[token.white+1];
+          while (t && t.type === WHITE) t = tree[t.white+1];
+
+          // wrap case expression in special call
+          token.value += ' ' +
+            transformer.caseCheck+'('+
+              fid+', '+
+              index +', ' +
+              '(';
+          // <case expression here>
+          token.colonToken.value = '' +
+              '), '+
+              switchVar+', '+
+              token.switchToken.white+', '+
+              token.caseIndex+', '+
+              token.ownerCountIndex+', '+
+              token.ownerCountFuncId+
+            ')'+token.colonToken.value;
+        }
+
         if (token.isStatementStart) {
-          if (token.value === 'function') {
-            if (token.parentFuncToken.isGlobal) tree[0].value = transformer.nameStatementCount+'('+fid+', '+index+', true); ' + tree[0].value;
-            else token.parentFuncToken.lhc.value += transformer.nameStatementCount+'('+fid+', '+index+', true); ';
+          if (token.isSwitchKeyword) {
+            // switch needs special handling to get T/F for each case
+            // each switch has lhp, rhp, lhc, and rhc reference
+            // each case has a reference to its parent switch
+            // each case also has a reference to its succeeding colon
+
+            // wrap each switch in a block such that:
+            // switch(x) { case y: }
+            // ->
+            // {var $switchVar_1$ = x; switch ($switchVar_1$) { case $case$(x, id, $switchVar_1$): } }
+            // (In words: put switch arg into a variable to reference it later. Pass on each case value together
+            // with the switch var and make the function compare them too, make it return just the case value.)
+
+            var switchVar = transformer.switchVar + '_' + token.white;
+
+            var header = tree.slice(token.lhp.white + 1, token.rhp.white)
+              .map(function (t, i) {
+                var v = t.value;
+                t.isExpressionStart = false;
+                t.value = '';
+                if (i === 0) t.value = switchVar;
+                return v;
+              })
+              .join('');
+
+            token.value = '' +
+              '{\n' +
+              transformer.nameStatementCount+'('+fid+', '+index+', "'+token.ownerCountType+'", '+token.ownerCountIndex+', '+token.ownerCountFuncId+');\n'+
+              'var ' + switchVar + ' = (' + header + ');\n'+
+              'switch' +
+              '';
+            token.rhc += '}\n';
+          } else if (token.value === 'function') {
+            if (token.parentFuncToken.isGlobal) tree[0].value = ';'+transformer.nameStatementCount+'('+fid+', '+index+', true); ' + tree[0].value;
+            else token.parentFuncToken.lhc.value += ';'+transformer.nameStatementCount+'('+fid+', '+index+', true); ';
           } else {
             token.value =
               (token.sameToken?'':' { ') +
-              transformer.nameStatementCount+'('+fid+', '+index+'); ' +
+              ';'+transformer.nameStatementCount+'('+
+                fid + ', ' +
+                index +
+                (token.ownerCountType?', "'+token.ownerCountType+'", '+token.ownerCountIndex+', '+token.ownerCountFuncId:'')+
+                // arg is ignored but we dont know if statement or expr for loop counter.
+                (token.loopIndex>=0?','+transformer.loopCount+'('+fid+', '+token.loopIndex+', '+token.loopFunc+')':'')+
+              '); ' +
               token.value;
           }
         }
@@ -2447,27 +2574,68 @@
     },
     escape: function(s){ return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); },
     initializeStats: function(fid, tree, stats){
-      if (!stats[fid]) stats[fid] = {statements:{}, expressions:{}, functions:{}, arguments:{}, qmarks:{}};
+      if (!stats[fid]) stats[fid] = {statements:{}, expressions:{}, functions:{}, arguments:{}, qmarks:{}, macros:{}};
       var fstats = stats[fid];
+
       tree.forEach(function(token,index){
         if (token.isFunctionMarker) {
-          var obj = fstats.functions[index] = {type:'func', types:'', truthy:0, falsy:0};
+          var obj = fstats.functions[index] = {
+            type: 'func',
+            types: '',
+            typeCount: {},
+            truthy: 0,
+            falsy: 0,
+            ifs: [],
+            loops: [],
+            looped: [],
+            switches: [],
+            cases: [],
+            returns: []
+          };
           if (token.isFuncDeclKeyword) obj.declared = 0;
         }
-        if (token.isExpressionStart) {
-          fstats.expressions[index] = {type:'expr', count:0, types:'', truthy:0, falsy:0};
+        if (token.isExpressionStart || token.isCaseKeyword ) {
+          fstats.expressions[index] = {type:'expr', count:0, types:'', typeCount:{}, truthy:0, falsy:0};
+          if (token.isCaseKeyword) {
+            var caseCounts = fstats.statements[token.switchToken.white].caseCounts; // defined below
+            token.caseIndex = caseCounts.length;
+            caseCounts.push(0);
+            fstats.statements[token.switchToken.white].casePasses.push(0);
+
+            var func = fstats.functions[token.switchToken.ownerFuncToken.white];
+            token.ownerCountIndex = func.cases.length;
+            token.ownerCountType = transformer.typeCase;
+            token.ownerCountFuncId = token.switchToken.ownerFuncToken.white;
+            func.cases.push(0);
+          }
         }
         if (token.isStatementStart) {
-          var obj = fstats.statements[token.isForElse || index] = {
-            type: 'stmt',
-            count: 0,
-          };
+          var obj = fstats.statements[token.isForElse || index] = {type: 'stmt', count: 0, types:'', typeCount: {}};
           if (token.sameToken) obj.epsilon = true;
-          if (token.isReturnKeyword) obj.isReturn = true;
+          if (token.isReturnKeyword) {
+            obj.isReturn = true;
+
+            var func = fstats.functions[token.ownerFuncToken.white];
+            token.ownerCountIndex = func.returns.length;
+            token.ownerCountType = transformer.typeReturn;
+            token.ownerCountFuncId = token.ownerFuncToken.white;
+            func.returns.push(0);
+          }
+          if (token.isSwitchKeyword) {
+            obj.isSwitch = true;
+            obj.caseCounts = [];
+            obj.casePasses = [];
+
+            var func = fstats.functions[token.ownerFuncToken.white];
+            token.ownerCountIndex = func.switches.length;
+            token.ownerCountType = transformer.typeSwitch;
+            token.ownerCountFuncId = token.ownerFuncToken.white;
+            func.switches.push(0);
+          }
         }
         if (token.argTokens) {
           token.argTokens.forEach(function(t){
-            fstats.arguments[t.white] = {type:'arg', types:'', truthy:0, falsy:0};
+            fstats.arguments[t.white] = {type:'arg', types:'', typeCount:{}, truthy:0, falsy:0};
           });
         }
         if (token.isQmark) {
@@ -2476,9 +2644,65 @@
             type:'qmark',
             allCount: 0,
             allTypes: '',  leftTypes: '', rightTypes: '', condTypes: '',
+            allTypeCount: {}, leftTypeCount: {}, rightTypeCount: {}, condTypeCount: {},
             allTruthy: 0,  leftTruthy: 0, rightTruthy: 0, condTruthy: 0,
             allFalsy: 0,   leftFalsy: 0,  rightFalsy: 0,  condFalsy: 0,
           };
+        }
+        if (token.type === WHITE && token.value.slice(0, 5) === '/*HF:') {
+          token.isMacro = true;
+
+          var match;
+          if (match = token.value.match(/\/\*\s*HF:(count-(?:exact|ranged))\s*(\[[^\]]*?\])\s*`([^`]*?)`\s*\*\//)) {
+            token.isMacro = true;
+
+            var macroName = match[1];
+            var counts = match[2];
+            var code = match[3];
+
+            if (macroName !== 'count-exact' && macroName !== 'count-ranged') throw new Error('unknown count macro subtype: '+macroName)
+
+            // assuming `counts` is a valid js array apart from double dots,
+            // we can easily replace the double dots with the extrapolated list of ints
+            counts = counts.replace(/(\d+)\s*..\s*(\d+)/g, function(a,b,c){
+              var s = [];
+              for (var i = parseInt(a, 10), n = parseInt(b, 10); i <= n; ++i) {
+                s.push(i);
+              }
+              return s.join(',');
+            });
+
+            fstats.macros[token.white] = {type: 'macro', name: macroName, args: JSON.parse(counts), code: code};
+          } else if (match = token.value.match(/\/\*\s*HF:(count-any)\s*`([^`]*?)`\s*\*\//)) {
+            token.isMacro = true;
+
+            var macroName = match[1];
+            var code = match[2];
+
+            // results will be stashed in args object
+            fstats.macros[token.white] = {type: 'macro', name: macroName, args: {}, code: code};
+          } else {
+            console.log('next error for:', token);
+            throw new Error('Unknown macro:', token.value);
+          }
+        }
+        if (token.value === 'if') {
+          var func = fstats.functions[token.ownerFuncToken.white];
+          token.isIfKeyword = true;
+          token.ownerCountIndex = func.ifs.length;
+          token.ownerCountType = transformer.typeIf;
+          token.ownerCountFuncId = token.ownerFuncToken.white;
+          func.ifs.push(0);
+        }
+        if ((token.value === 'while' && !token.belongsToDo) || token.value === 'for' || token.value === 'do') {
+          var func = fstats.functions[token.ownerFuncToken.white];
+          token.isLoopKeyword = true;
+          token.ownerCountIndex = func.loops.length;
+          token.ownerCountType = transformer.typeLoop;
+          token.ownerCountFuncId = token.ownerFuncToken.white;
+          func.loops.push(0);
+          token.firstStatement.loopIndex = token.ownerCountIndex;
+          token.firstStatement.loopFunc = token.ownerCountFuncId;
         }
       });
     },
@@ -2487,6 +2711,12 @@
       if (!token) return null;
       var i = token.white+1;
       while (tree[i] && tree[i].type === WHITE) ++i;
+      return tree[i];
+    },
+    prevBlack: function(token, tree){
+      if (!token) return null;
+      var i = token.white-1;
+      while (tree[i] && tree[i].type === WHITE) --i;
       return tree[i];
     },
     rangeString: function(tree, from, to){
@@ -2500,17 +2730,28 @@
       var arr = [];
       if (from === false) from = 0;
       if (to === false) to = tree.length;
+
       for (var index=from; index<to; ++index) {
         var token = tree[index];
 
         var alreadyEscaped = false;
         var returnValue = '';
-
-        if (token.isExpressionStart) {
+        if (token.type === WHITE && token.value.slice(0, 5) === '/*HF:') {
+          alreadyEscaped = true;
+          returnValue = transformer.escape(token.value)
+          returnValue = returnValue.replace(/^\/\*(HF:[\w-]+)/, '/*<span id="id-'+index+'">$1</span>');
+          returnValue = returnValue.replace(/`([^`])`/, '`<span class="macro-code">$1</span>`');
+        } else if (token.isExpressionStart || token.isCaseKeyword || token.isFuncDeclKeyword) {
           alreadyEscaped = true;
 
           if (!forThumb) {
-            if (token.isFunctionMarker) {
+            if (token.isFunctionMarker) { // expression! or case... (TOFIX: testcase for a function in a `case`)
+              var str = transformer.escape(token.value);
+              var identName = transformer.nextBlack(token, tree);
+              if (identName.isFuncDeclName) {
+                str = transformer.rangeString(tree, index, identName.white);
+              }
+
               // we want to hide the expression span (not remove it because that makes other
               // parts of the code break and handling that gracefully is far more complex
               // opposed to just hiding these elements and let them be). So...
@@ -2518,90 +2759,129 @@
                 '<span id="id-'+index+'" style="display:none;"></span>' +
                 '<span class="function-focus" title="click to zoom in on this function" data-index="'+index+'">\u2923</span>' +
                 '<span class="function-exclude" title="click to exclude this function from stats" data-index="'+index+'">\u2295</span>' +
-                '<span id="func-id-'+index+'">' +
-                  transformer.escape(token.value) +
+                '<span id="func-id-'+index+'" data-func-name="'+token.textName+'" data-func-alt-name="'+token.altTextName+'">' +
+                  str +
                 '</span>';
+
+              if (identName.isFuncDeclName) index = identName.white;
             } else {
               returnValue += '<span id="id-'+index+'">';
               returnValue += transformer.escape(token.value);
 
               // add a bunch of rules on which to extend the wrap. certain things can be improved visually.
-              var next = token;
+              var current = token;
               var last = token;
-              while (next = transformer.nextBlack(last, tree)) {
+              while (current = transformer.nextBlack(last, tree)) {
                 var lv = last.value;
-                var nv = next.value;
+                var cv = current.value;
 
                 if (lv === '[' && last.isExpressionStart) {
-                  next = null;
-                } else if (nv === '.') {
-                  next = transformer.nextBlack(next, tree);
-                  if (next) {
-                    returnValue += transformer.rangeString(tree, index+1, next.white);
-                    index = next.white;
+                  current = null;
+                } else if (cv === '.') {
+                  current = transformer.nextBlack(current, tree);
+                  if (current) {
+                    returnValue += transformer.rangeString(tree, index+1, current.white);
+                    index = current.white;
                   }
                 } else if (
-                  ((lv === '++' || lv === '--') && next.type === IDENTIFIER) ||
+                  // TOFIX: problem with ExpressionStatement
+
+                  ((lv === '++' || lv === '--') && current.type === IDENTIFIER) ||
+
+                  // only grab current (cv) for unary ops if last (lv) was not a paren open
                   lv === '!' ||
                   lv === '~' ||
                   lv === 'new' ||
                   lv === 'delete' ||
                   lv === 'typeof' ||
-                  nv === '==' ||
-                  nv === '===' ||
-                  nv === '!=' ||
-                  nv === '!==' ||
-                  lv === '==' ||
-                  lv === '===' ||
-                  lv === '!=' ||
-                  lv === '!==' ||
-                  nv === '+' ||
-                  nv === '-' ||
-                  next.type === NUMBER ||
+
+                  // +- are only danger here since they can also be unary...
                   lv === '+' ||
                   lv === '-' ||
+
+                    // TOFIX: find a way to do these properly
+//                  (lv !== '(' && (
+//                    cv === '+' ||
+//                    cv === '-' ||
+////                    cv === '!' ||
+//                    cv === '~' ||
+//                    cv === 'new' ||
+//                    cv === 'delete' ||
+//                    cv === 'typeof' ||
+//
+//                    // +- are only danger here since they can also be unary...
+//                    cv === '+' ||
+//                    cv === '-' ||
+//
+//                    // this has the same problem as unaries `(15)`, but we'd like them in
+////                    current.type === NUMBER ||
+//                    current.type === STRING ||
+//                    current.type === REGEX
+//                  )) ||
+
+                  // lookahead for binary ops though... (lv and nv)
+                  lv === '==' ||
+                  cv === '==' ||
+                  lv === '===' ||
+                  cv === '===' ||
+                  lv === '!=' ||
+                  cv === '!=' ||
+                  lv === '!==' ||
+                  cv === '!==' ||
                   lv === '/' ||
+                  cv === '/' ||
                   lv === '&' ||
+                  cv === '&' ||
                   lv === '|' ||
+                  cv === '|' ||
+                  lv === '^' ||
+                  cv === '^' ||
                   lv === '%' ||
+                  cv === '%' ||
                   lv === '*' ||
+                  cv === '*' ||
                   lv === '<' ||
+                  cv === '<' ||
                   lv === '>' ||
+                  cv === '>' ||
                   lv === '<<' ||
+                  cv === '<<' ||
                   lv === '>>' ||
+                  cv === '>>' ||
                   lv === '>>>' ||
+                  cv === '>>>' ||
                   lv === '<=' ||
+                  cv === '<=' ||
                   lv === '>=' ||
+                  cv === '>=' ||
                   lv === '>>=' ||
+                  cv === '>>=' ||
                   lv === '>>>=' ||
-                  nv === '<' ||
-                  nv === '>' ||
-                  nv === '<=' ||
-                  nv === '>=' ||
-                  nv === '>>=' ||
-                  nv === '>>>='
+                  cv === '>>>='
                 ) {
-                  returnValue += transformer.rangeString(tree, index+1, next.white);
-                  index = next.white;
-                } else if (nv === '++' || nv === '--' || nv === '[') {
-                  returnValue += transformer.rangeString(tree, index+1, next.white);
-                  index = next.white;
-                  next = null; // end of any expression
-                } else if (nv === '(' && next.isCallStart) {
-                  returnValue += transformer.rangeString(tree, index+1, next.white);
-                  index = next.white;
-                  next = transformer.nextBlack(next, tree);
-                  if (next.value === ')' && next.isCallStop) {
-                    returnValue += transformer.rangeString(tree, index+1, next.white);
-                    index = next.white;
-                    next = transformer.nextBlack(next, tree);
+                  returnValue += transformer.rangeString(tree, index+1, current.white);
+                  index = current.white;
+//                } else if (
+////                  ((cv === '++' || cv === '--') && lv !== '(') || // TOFIX: find a way to do this properly
+//                  cv === '[') {
+//                  returnValue += transformer.rangeString(tree, index+1, current.white);
+//                  index = current.white;
+//                  current = null; // end of any expression
+                } else if (cv === '(' && current.isCallStart) {
+                  returnValue += transformer.rangeString(tree, index+1, current.white);
+                  index = current.white;
+                  current = transformer.nextBlack(current, tree);
+                  if (current.value === ')' && current.isCallStop) {
+                    returnValue += transformer.rangeString(tree, index+1, current.white);
+                    index = current.white;
+                    current = transformer.nextBlack(current, tree);
                   } else {
-                    next = null;
+                    current = null;
                   }
                 } else {
-                  next = null; // did not find anything to continue, so stop
+                  current = null; // did not find anything to continue, so stop
                 }
-                last = next;
+                last = current;
               }
 
               returnValue += '</span>';
@@ -2609,6 +2889,9 @@
           } else {
             returnValue += transformer.escape(token.value);
           }
+        } else if (token.isFuncDeclName) {
+          returnValue += '<span class="func-decl-name">' + transformer.escape(token.value) + '</span>';
+          alreadyEscaped = true;
         } else if (token.isQmark) {
           returnValue += '<span id="qmark-id-'+index+'">' + transformer.escape(token.value) + '</span>';
           alreadyEscaped = true;
@@ -2637,16 +2920,24 @@
               }
             }
 
-            // TODO what case is this?
+            // TODO what case is this? function in else? or just exactly not that?
             if (!forThumb && token.isFunctionMarker) {
+              var str = transformer.escape(token.value);
+              var funcName = transformer.nextBlack(token, tree);
+              if (funcName.isFuncDeclName) {
+                str = transformer.rangeString(tree, index, funcName.white);
+              }
+
               // we want to hide the expression span (not remove it because that makes other
               // parts of the code break and handling that gracefully is far more complex
               // opposed to just hiding these elements and let them be). So...
               returnValue +=
                 '<span id="id-'+eindex+'" style="display:none;"></span>' +
-                '<span id="func-id-'+eindex+'">' +
-                  transformer.escape(token.value) +
+                '<span id="func-id-'+index+'" data-func-name="'+token.textName+'" data-func-alt-name="'+token.altTextName+'">' +
+                  str +
                 '</span>';
+
+              if (funcName.isFuncDeclName) index = funcName.white;
             } else {
               if (!forThumb) returnValue += '<span id="id-'+eindex+'">';
               returnValue += transformer.escape(token.value);
@@ -2655,6 +2946,7 @@
           }
           alreadyEscaped = true;
         }
+
         if (token.isForElse >= 0) { // else-if
           alreadyEscaped = true;
           returnValue += transformer.escape(token.value);
@@ -2694,6 +2986,12 @@
     this.globals = {};
   };
 
+  var UBYTE = 256;
+  var SBYTE = 128;
+  var USHORT = Math.pow(2, 16);
+  var SSHORT = Math.pow(2, 15);
+  var UINT = Math.pow(2, 32);
+  var SINT = Math.pow(2, 31);
 
   HeatFiler.prototype = {
     source: null,
@@ -2703,6 +3001,7 @@
     stats: null,
     profiledFidMap: null,
 
+    // these functions are exposed externally
     globals: null,
 
     localCode: function(input){
@@ -2760,15 +3059,37 @@
 
       // we store a single instance of each function so we can copy that to global (web) or to each file (node)
 
-      this.globals[_transformer.nameStatementCount] = global[_transformer.nameStatementCount] = function(fid, uid, funcDeclared){
+      this.globals[_transformer.nameStatementCount] = global[_transformer.nameStatementCount] = function(fid, uid, ownerType, ownerIndex, ownerFuncId, funcDeclared){
         if (funcDeclared) {
           ++stats[fid].functions[uid].declared;
         } else {
           ++stats[fid].statements[uid].count;
+          switch (ownerType) {
+            case transformer.typeSwitch:
+              ++stats[fid].functions[ownerFuncId].switches[ownerIndex];
+              break;
+            case transformer.typeIf:
+              ++stats[fid].functions[ownerFuncId].ifs[ownerIndex];
+              break;
+            case transformer.typeLoop:
+              ++stats[fid].functions[ownerFuncId].loops[ownerIndex];
+              break;
+            case transformer.typeReturn:
+              ++stats[fid].functions[ownerFuncId].returns[ownerIndex];
+              break;
+            case transformer.typeCase: throw new Error('expecting case handled elsewhere');
+          }
         }
         if (toLocalStorage) tryFlush();
       };
-      this.globals[_transformer.nameExpressionCount] = global[_transformer.nameExpressionCount] = function(fid, uid, value){
+      this.globals[_transformer.caseCheck] = global[_transformer.caseCheck] = function(fid, uid, value, switchValue, switchUid, caseIndex, ownerIndex, ownerFuncId){
+        $expr$(fid, uid, value === switchValue);
+        stats[fid].statements[switchUid].caseCounts[caseIndex]++;
+        ++stats[fid].functions[ownerFuncId].returns[ownerIndex];
+        if (value === switchValue) stats[fid].statements[switchUid].casePasses[caseIndex]++;
+        return value;
+      };
+      var $expr$ = this.globals[_transformer.nameExpressionCount] = global[_transformer.nameExpressionCount] = function(fid, uid, value){
         var obj = stats[fid].expressions[uid];
         ++obj.count;
         that.typeCheck(obj, value);
@@ -2813,7 +3134,7 @@
             ++obj.allCount;
             if (!!value) ++obj.allTruthy;
             else ++obj.allFalsy;
-            that.typeCheck(obj, value, 'condTypes');
+            that.typeCheck(obj, value, 'condTypes', 'condTypeCount');
             break;
           case 'L':
             ++obj.allCount;
@@ -2824,8 +3145,8 @@
               ++obj.leftFalsy;
               ++obj.allFalsy;
             }
-            that.typeCheck(obj, value, 'leftTypes');
-            that.typeCheck(obj, value, 'allTypes');
+            that.typeCheck(obj, value, 'leftTypes', 'leftTypeCount');
+            that.typeCheck(obj, value, 'allTypes', 'allTypeCount');
             break;
           case 'R':
             ++obj.allCount;
@@ -2836,12 +3157,20 @@
               ++obj.rightFalsy;
               ++obj.allFalsy;
             }
-            that.typeCheck(obj, value, 'rightTypes');
-            that.typeCheck(obj, value, 'allTypes');
+            that.typeCheck(obj, value, 'rightTypes', 'rightTypeCount');
+            that.typeCheck(obj, value, 'allTypes', 'allTypeCount');
             break;
         }
 
         return value;
+      };
+      this.globals[_transformer.macro] = global[_transformer.macro] = function(fid, macroName, uid, result, args) {
+        var obj = stats[fid].macros[uid];
+        that.runMacro(macroName, obj, result, obj.args);
+        if (toLocalStorage) tryFlush();
+      };
+      this.globals[_transformer.loopCount] = global[_transformer.loopCount] = function(fid, loopIndex, ownerFuncId) {
+        ++stats[fid].functions[ownerFuncId].looped[loopIndex];
       };
 
       if (outputFileForNodejs) tryFlush(); // queue timer to make sure stats are flushed at least once... (in case no files are profiled)
@@ -2855,16 +3184,75 @@
         global[key] = globals[key];
       }
     },
-    typeCheck: function(obj, value, prop){
-      if (!prop) prop = 'types';
+    typeCheck: function(obj, value, typeProp, typesProp){
+      if (!typeProp) typeProp = 'types';
+      if (!typesProp) typesProp = 'typeCount';
+
       var type = typeof value;
-      if (obj[prop].indexOf(type) < 0) obj[prop] += ' ' + type;
+      this.addType(obj, typeProp, typesProp, type);
+
       if (type === 'number') {
-        if (isNaN(value) && obj[prop].indexOf('NaN') < 0) obj[prop] += ' NaN';
-        if (!isFinite(value) && obj[prop].indexOf('Infinity') < 0) obj[prop] += ' Infinity';
+        var numberType = 's-long'; // only if nothing else
+
+        if (isNaN(value)) numberType = 'NaN'; // very bad for perf
+        else if (!isFinite(value)) numberType = 'Infinity';
+
+        // fractions have fewer types :) and are slower to optimize.
+        else if ((value|0) !== value && value < SINT && value >= -SINT) numberType = 'float';
+        else if ((value|0) !== value) numberType = 'double';
+
+        // using mix of - and _ to make sure indexOf doesn't trigger. ugly hack, i know.
+
+        else if (value >= 0 && value <= UBYTE) numberType = 'u-byte';
+        else if (value >= -SBYTE && value < SBYTE) numberType = 's-byte';
+        else if (value >= 0 && value < USHORT) numberType = 'u-short';
+        else if (value >= -SSHORT && value < SSHORT) numberType = 's-short';
+        else if (value >= 0 && value < UINT) numberType = 'u-int';
+        else if (value >= -SINT && value < SINT) numberType = 's-int';
+        else if (value >= 0) numberType = 'u-long';
+
+        this.addType(obj, typeProp, typesProp, numberType);
       }
+
       if (value) ++obj.truthy;
       else ++obj.falsy;
+    },
+    addType: function(obj, typeProp, typesProp, type){
+      if (obj[typeProp].indexOf(type) < 0) obj[typeProp] += ' '+type;
+      obj[typesProp][type] = -~obj[typesProp][type]; // -~ is basically ++ with support for if the value is undefined :) Learned it from Jed, blame him.
+    },
+    runMacro: function(macroName, statsObject, result, args) {
+      switch (macroName) {
+        case 'count-ranged':
+          var counts = args;
+          for (var i = 0; i < counts.length; ++i) {
+            var num = counts[i];
+            if (result <= num) {
+              if (!statsObject[num]) statsObject[num] = 0;
+              ++statsObject[num];
+              return;
+            }
+          }
+          if (!statsObject[Infinity]) statsObject[Infinity] = 0;
+          ++statsObject[Infinity];
+          return;
+
+        case 'count-exact':
+          var counts = args;
+          var pos = counts.indexOf(result);
+          if (pos >= 0) {
+            if (!statsObject[result]) statsObject[result] = 0;
+            ++statsObject[result];
+          }
+          return;
+
+        case 'count-any':
+          if (!args[result]) args[result] = 0;
+          ++args[result];
+          return;
+
+        default: throw new Error('unknown macro:' + macroName);
+      }
     },
 
     run: function(fid){
