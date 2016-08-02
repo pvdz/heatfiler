@@ -43,10 +43,12 @@ var ui = {
     '}',
   defaultFiles:
     '@ console.log(\'Starting now...\');\n' +
-    '- ../../zeparser2/src/uni.js\n' +
-    '+ ../../zeparser2/src/tok.js\n' +
-    '+ ../../zeparser2/src/par.js\n' +
-    '- ../../zeparser2/bin/profiler-web.js\n',
+    '- ../lib/uni.js\n' +
+    '+ ../lib/tok.js\n' +
+    '+ ../lib/par.js\n' +
+    '# this is where the parsing should start...\n' +
+    '@ fetch(["../lib/par.js"], function(files,contents){console.log(\'Parsing now...\'); Par.parse(contents[0], {saveTokens:true, createBlackStream: true}); console.log(\'Parsing should be done...\');});\n' +
+    '',
   defaultOutputFile: '../stats.js',
 
   clean: function(){
@@ -739,7 +741,7 @@ var ui = {
     if (forCode) {
       qs('.run.page .input').placeholder = ui.defaultCode.replace(/  /g,'\xA0\xA0').replace(/\s*\n/g, '                                                                    ');
     } else {
-      qs('.run.page .input').placeholder = ui.defaultFiles.replace(/\s*\n/g, '                                                                    ');
+      qs('.run.page .input').placeholder = ui.defaultFiles.replace(/\s*\n/g, '                                                                                                                 ');
     }
   },
   updateRunInput: function(forCode){
@@ -1137,6 +1139,9 @@ qsa('.run.page .preview').forEach(function(e){
     }
   };
 });
+qs('.run.page .example').onclick = function(e){
+  qs('.run.page .input').value = ui.defaultFiles;
+};
 qsa('.run.page input[type="radio"]').forEach(function(e){
   e.onclick = function(){
     ui.updateHash('run');

@@ -15,6 +15,8 @@ See [heatfiler.qfox.nl](http://heatfiler.qfox.nl/#run,files,here) for a live dem
 
 Alternatively you can visit [the github version](https://qfox.github.io/heatfiler/src/index.html#run,files,here) which is probably more up to date :)
 
+There is an example, you can [click here](https://qfox.github.io/heatfiler/src/#run,files,here,start) to immediately run it.
+
 I've also added three integration examples. Open one of:
 - http://heatfiler.qfox.nl/dragon/
 - http://heatfiler.qfox.nl/parallax/
@@ -52,11 +54,18 @@ The "Result" tab, initially disabled, is where the heatmap will appear once you 
 
 ![runcode](https://f.cloud.github.com/assets/209817/1846705/ca30bc44-7612-11e3-96b2-b4863351b7fd.png)
 
-Select whether you are inputting code or a list of files. There will be a placeholder to get you started.
+Select whether you are inputting code or a list of files. There will be a placeholder to get you started. The placeholder looks ugly on firefox :( But only because the spec for placeholder is messed up. Just press the example button.
 
 For code, just enter the JavaScript code. It will be included through a dynamic `<script>` tag.
 
-For the files, enter each file on its own line. Prefix something with `@` to have it eval as regular code instead of file path. Prefix with a `+` or `-` to load it and include or exclude it from the stats. All files will be fetched and loaded (dynamic `<script>` tags) in given order. Without prefix, `+` is assumed.
+For the files, enter each file on its own line;
+
+- Prefix something with `@` to have it eval as regular code instead of file path.
+- Prefix with a `+` or `-` to load it and include or exclude it from the stats. All files will be fetched and loaded (dynamic `<script>` tags) in given order.
+- Without prefix, `+` is assumed.
+- Prefix `#` for comments
+
+All prefixes must be first chars. Whitespace is not ignored because I'm lazy.
 
 ## Heatmap
 

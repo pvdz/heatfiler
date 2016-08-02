@@ -89,7 +89,13 @@ var fetch = function(files, func, contents){
     files.forEach(function(s, index){
       if (contents[index] === undefined) {
         var file = s;
-        if (file[0] === '@') {
+        if (file[0] === '#') {
+          // comment. ignore.
+          ++received;
+          if (received === files.length) {
+            func(files, contents);
+          }
+        } else if (file[0] === '@') {
           // the @ prefix means literal code; `@ console.log('foo');` will end up logging foo. @ code is always excluded.
           contents[index] = file.slice(1);
           ++received;
