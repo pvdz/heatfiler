@@ -1,12 +1,17 @@
 (function(exports){
 
-  var HeatFiler = function(){
+  var HeatFiler = function(statsSaverAdapter){
     this.fileNames = [];
     this.contents = [];
     this.transformed = [];
     this.profiledFidMap = [];
     this.stats = {};
     this.globals = {};
+    /**
+     * An object that implements save(this.fileNames, this.stats)
+     * to handle saving coverage statistics.
+     */
+    this.statsSaverAdapter = statsSaverAdapter;
   };
 
   var UBYTE = 256;
@@ -30,6 +35,7 @@
     localCode: function(input){
       return this.localFiles(['+'], [input]);
     },
+
     localFiles: function(files, contents){
       // files are prefixed with + (profile) or - (dont profile)
       // contents is the actual contents of the file
@@ -198,6 +204,7 @@
 
       if (outputFileForNodejs) tryFlush(); // queue timer to make sure stats are flushed at least once... (in case no files are profiled)
     },
+
     exposeNode: function(){
       // global is either `window`, or whatever the global object is in nodejs these days
       var global = (function(){ return this; })();
@@ -207,6 +214,7 @@
         global[key] = globals[key];
       }
     },
+
     typeCheck: function(obj, value, typeProp, typesProp){
       if (!typeProp) typeProp = 'types';
       if (!typesProp) typesProp = 'typeCount';
@@ -240,10 +248,12 @@
       if (value) ++obj.truthy;
       else ++obj.falsy;
     },
+
     addType: function(obj, typeProp, typesProp, type){
       if (obj[typeProp].indexOf(type) < 0) obj[typeProp] += ' '+type;
       obj[typesProp][type] = -~obj[typesProp][type]; // -~ is basically ++ with support for if the value is undefined :) Learned it from Jed, blame him.
     },
+
     runMacro: function(macroName, statsObject, result, args) {
       switch (macroName) {
         case 'count-ranged':
@@ -301,7 +311,10 @@
       switch (what) {
         case 'stats':
           this.stats.key = Math.random();
-          localStorage.setItem('heatfiler-stats', JSON.stringify(this.stats));
+          if(this.statsSaverAdapter) {
+            this.statsSaverAdapter.save(this.fileNames, this.stats);
+          }
+          this.saveToLocalStorageReportError();
           break;
         case 'meta':
           localStorage.setItem('heatfiler-meta', JSON.stringify({
@@ -315,6 +328,20 @@
       }
       return this;
     },
+
+    /**
+     * Save to local storage keeping in mind space limitations
+     * exist and reporting them.
+     */
+   saveToLocalStorageReportError: function(){
+      try {
+          localStorage.setItem('heatfiler-stats', JSON.stringify(this.stats));
+      }
+      catch(err){
+        console.log('Could not save heatfiler-stats to local storage. Memory exceeded.');
+      }
+   },
+
     toFile: function(file){
       var key = Math.random();
       this.stats.key = key;
@@ -330,6 +357,7 @@
       }));
       if (e) console.log(e);
     },
+
     fromLocalStorage: function(what){
       switch (what) {
         case 'stats':
@@ -340,6 +368,7 @@
           console.warn('dunno what to get from localstorage ['+what+']');
       }
     },
+
     fromXhr: function(file, func){
       GET(file, function(err, str){
         func(JSON.parse(str));
@@ -352,7 +381,7 @@
       var content = [];
 
       Array.prototype.slice.call(document.querySelectorAll('script'), 0).forEach(function(e){
-        var type = e.getAttribute('type');
+        var type = e.getAttribute('heat-filer-type');
         if (type === 'profile' || type === 'noprofile') {
           if (e.src) {
             fileNames.push((type === 'profile' ? '+' : '-') + e.src);
@@ -413,7 +442,9 @@
         this.localFiles(fileNames, contents);
         this.exposeGlobals(true);
         this.toLocalStorage('meta');
-        this.run(this.profiledFidMap[0]);
+        this.profiledFidMap.forEach(function(fid){
+            this.run(fid);
+        }, this);
       }.bind(this), content);
 
       return this;
