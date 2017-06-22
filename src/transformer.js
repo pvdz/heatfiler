@@ -200,6 +200,7 @@
     addLineInfoToStat: function(statInfo, token){
       if('line' in token){
         statInfo['line'] = token['line'];
+        statInfo['start'] = token['start'];
       }
     },
     initializeStats: function(fid, tree, stats){
