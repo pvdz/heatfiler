@@ -307,23 +307,25 @@
             throw new Error('Unknown macro:', token.value);
           }
         }
-        if (token.value === 'if') {
-          var func = fstats.functions[token.ownerFuncToken.white];
-          token.isIfKeyword = true;
-          token.ownerCountIndex = func.ifs.length;
-          token.ownerCountType = transformer.typeIf;
-          token.ownerCountFuncId = token.ownerFuncToken.white;
-          func.ifs.push(0);
-        }
-        if ((token.value === 'while' && !token.belongsToDo) || token.value === 'for' || token.value === 'do') {
-          var func = fstats.functions[token.ownerFuncToken.white];
-          token.isLoopKeyword = true;
-          token.ownerCountIndex = func.loops.length;
-          token.ownerCountType = transformer.typeLoop;
-          token.ownerCountFuncId = token.ownerFuncToken.white;
-          func.loops.push(0);
-          token.firstStatement.loopIndex = token.ownerCountIndex;
-          token.firstStatement.loopFunc = token.ownerCountFuncId;
+        if (!token.isPropertyName) {
+          if (token.value === 'if') {
+            var func = fstats.functions[token.ownerFuncToken.white];
+            token.isIfKeyword = true;
+            token.ownerCountIndex = func.ifs.length;
+            token.ownerCountType = transformer.typeIf;
+            token.ownerCountFuncId = token.ownerFuncToken.white;
+            func.ifs.push(0);
+          }
+          if ((token.value === 'while' && !token.belongsToDo) || token.value === 'for' || token.value === 'do') {
+            var func = fstats.functions[token.ownerFuncToken.white];
+            token.isLoopKeyword = true;
+            token.ownerCountIndex = func.loops.length;
+            token.ownerCountType = transformer.typeLoop;
+            token.ownerCountFuncId = token.ownerFuncToken.white;
+            func.loops.push(0);
+            token.firstStatement.loopIndex = token.ownerCountIndex;
+            token.firstStatement.loopFunc = token.ownerCountFuncId;
+          }
         }
       }, this);
     },
