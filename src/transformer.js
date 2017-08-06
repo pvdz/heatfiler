@@ -180,25 +180,39 @@
       return tree.map(function(o){ return o.value; }).join('');
     },
     escape: function(s){ return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); },
+    initFunctionStats: function(fstats, fid, index){
+      return fstats.functions[index] = {
+        type: index === -1 ? 'global' : 'func',
+        types: '',
+        typeCount: {},
+        truthy: 0,
+        falsy: 0,
+        ifs: [],
+        loops: [],
+        looped: [],
+        switches: [],
+        cases: [],
+        returns: []
+      };
+    },
     initializeStats: function(fid, tree, stats){
-      if (!stats[fid]) stats[fid] = {statements:{}, expressions:{}, functions:{}, arguments:{}, qmarks:{}, macros:{}};
-      var fstats = stats[fid];
+      if (!stats[fid]) {
+        var fstats = stats[fid] = {
+          statements: {},
+          expressions: {},
+          functions: {},
+          arguments: {},
+          qmarks: {},
+          macros: {}
+        };
+        this.initFunctionStats(fstats, fid, -1); // global
+      } else {
+        var fstats = stats[fid];
+      }
 
       tree.forEach(function(token,index){
         if (token.isFunctionMarker) {
-          var obj = fstats.functions[index] = {
-            type: 'func',
-            types: '',
-            typeCount: {},
-            truthy: 0,
-            falsy: 0,
-            ifs: [],
-            loops: [],
-            looped: [],
-            switches: [],
-            cases: [],
-            returns: []
-          };
+          var obj = this.initFunctionStats(fstats, fid, index);
           if (token.isFuncDeclKeyword) obj.declared = 0;
         }
         if (token.isExpressionStart || token.isCaseKeyword ) {
@@ -311,7 +325,7 @@
           token.firstStatement.loopIndex = token.ownerCountIndex;
           token.firstStatement.loopFunc = token.ownerCountFuncId;
         }
-      });
+      }, this);
     },
     // pretty much same structure as transform()... (so if that function changes..)
     nextBlack: function(token, tree){
