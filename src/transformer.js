@@ -307,7 +307,7 @@
             throw new Error('Unknown macro:', token.value);
           }
         }
-        if (!token.isPropertyName) {
+        if (!token.isPropertyName && !token.isDotProperty) {
           if (token.value === 'if') {
             var func = fstats.functions[token.ownerFuncToken.white];
             token.isIfKeyword = true;
