@@ -291,3 +291,11 @@ For (even) more information... :)
 Hope you liked it :)
 
 Taking (reasonable) pull requests, will fix important bugs. Not sure if, and if so when, I'll continue to work on this project.
+
+# todo:
+
+- show list of hidden functions
+- add top 10 of call origins for specific path
+- show the different paths taken through some code (each call can get a unique id and each expression tag can attach its id to that call-id. then afterwards the list of attached ids will form a path)
+- filter lists by some search param
+- paginate results
