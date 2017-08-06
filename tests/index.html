@@ -13,28 +13,41 @@
     <script>
       console.log('ZeParser2 tests:\n');
       console.log('\n');
-      good.forEach(function(arr){
-        var str = arr[0];
-        console.log('Input: ', str);
-        var out = transformer.process(0, str);
-        console.log('Output:', out);
-        Par.parse(out, {saveTokens:true});
-        console.log('\n');
-      });
+      good.forEach(runTest);
       console.log('\n');
       console.log('\n');
       console.log('\n');
       console.log('\n');
       console.log('HeatFiler tests:\n');
       console.log('\n');
-      heatTests.forEach(function(arr, i){
+      heatTests.forEach(runTest);
+
+      function runTest(arr, i) {
+        var stats = {};
         var str = arr[0];
         console.log('Input: ', str);
-        var out = transformer.process(0, str);
-        console.log('Output:', out);
-        Par.parse(out, {saveTokens:true});
-        console.log('\n');
-      });
+        try {
+          Par.parse(str, {saveTokens:true, createBlackStream: true});
+        } catch (e) {
+          console.error('ZeParser could not parse test input (fixme):', e);
+          console.log('\n');
+          return;
+        }
+        try {
+          var out = transformer.process(0, str, stats);
+          console.log('Output:', out);
+        } catch (e) {
+          console.error('Heatfiler threw an error:', e);
+          console.log('\n');
+          return;
+        }
+        try {
+          Par.parse(out, {saveTokens:true, createBlackStream: true});
+          console.log('\n');
+        } catch (e) {
+          console.error('ZeParser could not parse heatfiler result:', e);
+        }
+      }
     </script>
   </body>
 </html>
