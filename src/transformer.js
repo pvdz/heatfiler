@@ -179,7 +179,6 @@
 
       return tree.map(function(o){ return o.value; }).join('');
     },
-
     escape: function(s){ return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); },
     initFunctionStats: function(fstats, fid, index){
       return fstats.functions[index] = {
@@ -199,8 +198,8 @@
     /** Adds line number info to file statistics */
     addLineInfoToStat: function(statInfo, token){
       if('line' in token){
-        statInfo['line'] = token['line'];
-        statInfo['start'] = token['start'];
+        statInfo.line = token['line'];
+        statInfo.start = token['start'];
       }
     },
     initializeStats: function(fid, tree, stats){

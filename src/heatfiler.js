@@ -35,7 +35,6 @@
     localCode: function(input){
       return this.localFiles(['+'], [input]);
     },
-
     localFiles: function(files, contents){
       // files are prefixed with + (profile) or - (dont profile)
       // contents is the actual contents of the file
@@ -204,7 +203,6 @@
 
       if (outputFileForNodejs) tryFlush(); // queue timer to make sure stats are flushed at least once... (in case no files are profiled)
     },
-
     exposeNode: function(){
       // global is either `window`, or whatever the global object is in nodejs these days
       var global = (function(){ return this; })();
@@ -214,7 +212,6 @@
         global[key] = globals[key];
       }
     },
-
     typeCheck: function(obj, value, typeProp, typesProp){
       if (!typeProp) typeProp = 'types';
       if (!typesProp) typesProp = 'typeCount';
@@ -248,12 +245,10 @@
       if (value) ++obj.truthy;
       else ++obj.falsy;
     },
-
     addType: function(obj, typeProp, typesProp, type){
       if (obj[typeProp].indexOf(type) < 0) obj[typeProp] += ' '+type;
       obj[typesProp][type] = -~obj[typesProp][type]; // -~ is basically ++ with support for if the value is undefined :) Learned it from Jed, blame him.
     },
-
     runMacro: function(macroName, statsObject, result, args) {
       switch (macroName) {
         case 'count-ranged':
@@ -328,7 +323,6 @@
       }
       return this;
     },
-
     /**
      * Save to local storage keeping in mind space limitations
      * exist and reporting them.
@@ -357,7 +351,6 @@
       }));
       if (e) console.log(e);
     },
-
     fromLocalStorage: function(what){
       switch (what) {
         case 'stats':
@@ -368,7 +361,6 @@
           console.warn('dunno what to get from localstorage ['+what+']');
       }
     },
-
     fromXhr: function(file, func){
       GET(file, function(err, str){
         func(JSON.parse(str));
