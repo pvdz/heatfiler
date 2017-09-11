@@ -1,12 +1,17 @@
 (function(exports){
 
-  var HeatFiler = function(){
+  var HeatFiler = function(statsSaverAdapter){
     this.fileNames = [];
     this.contents = [];
     this.transformed = [];
     this.profiledFidMap = [];
     this.stats = {};
     this.globals = {};
+    /**
+     * An object that implements save(this.fileNames, this.stats)
+     * to handle saving coverage statistics.
+     */
+    this.statsSaverAdapter = statsSaverAdapter;
   };
 
   var UBYTE = 256;
@@ -301,7 +306,10 @@
       switch (what) {
         case 'stats':
           this.stats.key = Math.random();
-          localStorage.setItem('heatfiler-stats', JSON.stringify(this.stats));
+          if(this.statsSaverAdapter) {
+            this.statsSaverAdapter.save(this.fileNames, this.stats);
+          }
+          this.saveToLocalStorageReportError();
           break;
         case 'meta':
           localStorage.setItem('heatfiler-meta', JSON.stringify({
@@ -315,6 +323,19 @@
       }
       return this;
     },
+    /**
+     * Save to local storage keeping in mind space limitations
+     * exist and reporting them.
+     */
+   saveToLocalStorageReportError: function(){
+      try {
+          localStorage.setItem('heatfiler-stats', JSON.stringify(this.stats));
+      }
+      catch(err){
+        console.log('Could not save heatfiler-stats to local storage. Memory exceeded.');
+      }
+   },
+
     toFile: function(file){
       var key = Math.random();
       this.stats.key = key;
@@ -352,7 +373,7 @@
       var content = [];
 
       Array.prototype.slice.call(document.querySelectorAll('script'), 0).forEach(function(e){
-        var type = e.getAttribute('type');
+        var type = e.getAttribute('heat-filer-type');
         if (type === 'profile' || type === 'noprofile') {
           if (e.src) {
             fileNames.push((type === 'profile' ? '+' : '-') + e.src);
@@ -413,7 +434,9 @@
         this.localFiles(fileNames, contents);
         this.exposeGlobals(true);
         this.toLocalStorage('meta');
-        this.run(this.profiledFidMap[0]);
+        this.profiledFidMap.forEach(function(fid){
+            this.run(fid);
+        }, this);
       }.bind(this), content);
 
       return this;

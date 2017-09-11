@@ -195,6 +195,13 @@
         returns: []
       };
     },
+    /** Adds line number info to file statistics */
+    addLineInfoToStat: function(statInfo, token){
+      if('line' in token){
+        statInfo.line = token['line'];
+        statInfo.start = token['start'];
+      }
+    },
     initializeStats: function(fid, tree, stats){
       if (!stats[fid]) {
         var fstats = stats[fid] = {
@@ -216,7 +223,9 @@
           if (token.isFuncDeclKeyword) obj.declared = 0;
         }
         if (token.isExpressionStart || token.isCaseKeyword ) {
-          fstats.expressions[index] = {type:'expr', count:0, types:'', typeCount:{}, truthy:0, falsy:0};
+          var statInfo = {type:'expr', count:0, types:'', typeCount:{}, truthy:0, falsy:0};
+          this.addLineInfoToStat(statInfo, token);
+          fstats.expressions[index] = statInfo;
           if (token.isCaseKeyword) {
             var caseCounts = fstats.statements[token.switchToken.white].caseCounts; // defined below
             token.caseIndex = caseCounts.length;
@@ -231,7 +240,9 @@
           }
         }
         if (token.isStatementStart) {
-          var obj = fstats.statements[token.isForElse || index] = {type: 'stmt', count: 0, types:'', typeCount: {}};
+          var statInfo = {type: 'stmt', count: 0, types:'', typeCount: {}};
+          this.addLineInfoToStat(statInfo, token);
+          var obj = fstats.statements[token.isForElse || index] = statInfo;
           if (token.sameToken) obj.epsilon = true;
           if (token.isReturnKeyword) {
             obj.isReturn = true;
