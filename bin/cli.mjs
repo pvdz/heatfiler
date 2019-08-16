@@ -18,34 +18,35 @@ if (process.argv.includes('--help')) {
     HeatFiler.2
     The Heatmap Profiler for analyzing JS
 
-      --help              This
-      --config            A JSON object with the config, used as a second baseline, can still be overridden with other flags
-      --config-file       File should contain a JSON object for \`--config\`
+      --help                    This
+      --config <json>           A JSON object with the config, used as a second baseline, can still be overridden with other flags
+      --config-file <file>      File should contain a JSON object for \`--config\`
+      --build-id <id>           Use this id as the build id instead of a randomly generated one
 
-      ## Channels
-        --log             Enable logging of stats. Will just \`console.log\` the stats at an interval
-        --local-storage   Enable logging of stats. Will write the stats object to \`localStorage\` at an interval
-        --post            Enable logging of stats. Will "ajax" POST the stats to the \`--post-server\` endpoint at an interval
+      ## Output channels
+        --log                   Enable logging of stats. Will just \`console.log\` the stats at an interval
+        --local-storage         Enable logging of stats. Will write the stats object to \`localStorage\` at an interval
+        --post                  Enable logging of stats. Will "ajax" POST the stats to the \`--post-server\` endpoint at an interval
 
       ## Runtime
-        --interval        Delay between syncing of stats (for any method)
-        --interval-sync   Interval at which to force a sync (only works for logging and localStorage methods), -1 to disable
-        --env-target      When set the logger will bail if \`location\` is available but a mismatch at runtime
-        --serve           Start the server that proxies the stats object (on \`--post-server\`)
+        --interval <ms>         Delay between syncing of stats (for any method)
+        --interval-sync <ms>    Interval at which to force a sync (only works for logging and localStorage methods), -1 to disable
+        --env-target            When set the logger will bail if \`location\` is available but a mismatch at runtime
+        --serve                 Start the server that proxies the stats object (on \`--post-server\`)
 
       ## Input to transform
-        --file            Input files (comma separated), use - to read the list from stdin
-        --dir             Input dirs to process recursively (comma separated)
-        --root            Project root for file path displaying purposes
+        --file <file>           Input files (comma separated), use - to read the list from stdin
+        --dir <dir>             Input dirs to process recursively (comma separated)
+        --root <prefix>         Project root for file path displaying purposes
       
       ## Output
-        --run             Only generate the "run" code, which actually gets executed (-> js)
-        --view            Only generate the "view" code, used by the viewer (-> html)
-        --post-server     A REST endpoint where the stats will be sent/available as a POST if \`--post\` is enabled
-        --inline          Replace input file with run code output, inline (else <file>.run is generated)
-        --cli             Use next argument as input code and dump both outputs to cli
-        --tty             Output processed file to terminal (automatic for --cli)
-        --header          Only inject the HF machinery to this file (absolute path) instead of all files (minimal impact)
+        --run                   Only generate the "run" code, which actually gets executed (-> js)
+        --view                  Only generate the "view" code, used by the viewer (-> html)
+        --post-server <url>     A REST endpoint where the stats will be sent/available as a POST if \`--post\` is enabled
+        --inline                Replace input file with run code output, inline (else <file>.run is generated)
+        --cli                   Use next argument as input code and dump both outputs to cli
+        --tty                   Output processed file to terminal (automatic for --cli)
+        --header <file>         Only inject the HF machinery to this file (absolute path) instead of all files (minimal impact)
 
     Exiting now.
 `);
@@ -84,6 +85,7 @@ function generateConfig() {
       targetDir: '', // --dir <dir>
       projectRoot: '', // --root <file>
       headerFile: '', // --header <file>
+      buildId: ('C'+parseInt((''+Math.random()).slice(2, 8), 10)).padEnd('0', 7), // --build-id <id>
     },
     output: {
       inline: false, // --inline
@@ -125,12 +127,25 @@ function generateConfig() {
   if (hasParam('--run')) config.output.run = true;
   if (hasParam('--view')) config.output.view = true;
   if (hasParam('--interval')) config.enable.interval = getParamArg('--interval');
-  if (hasParam('--log')) config.enable.log = true;
-  if (hasParam('--local-storage')) config.enable.localStorage = true;
-  if (hasParam('--post')) config.enable.post = getParamArg('--post-server');
-  if (hasParam('--post-server')) config.output.postServer = true;
+  if (hasParam('--log') || hasParam('--local-storage') || hasParam('--post') || hasParam('--post-server')) {
+    // If there's any env arg override, clear the presets
+    baseConfig.enable = {
+      ...baseConfig.enable,
+      log: false,
+      localStorage: false,
+      post: false,
+      postServer: false,
+    };
+
+    if (hasParam('--log')) config.enable.log = true;
+    if (hasParam('--local-storage')) config.enable.localStorage = true;
+    if (hasParam('--post')) config.enable.post = true;
+    if (hasParam('--post-server')) config.output.postServer = true;
+  }
+
   if (hasParam('--interval-sync')) config.enable.forceSyncInterval = parseInt(getParamArg('--interval-sync'), 10) || -1;
   if (hasParam('--env-target')) config.enable.targetLocation = getParamArg('--env-target');
+  if (hasParam('--build-id')) config.enable.targetLocation = getParamArg('--build-id');
 
   return config;
 }
@@ -138,15 +153,20 @@ function generateConfig() {
 const hfConfig = generateConfig();
 console.log('HF Config:', hfConfig);
 
+if (!hfConfig.enable.localStorage && !hfConfig.enable.post && !hfConfig.enable.log) {
+  console.error('Error: no stats logging method enabled; you need to enable at least one of: log, post, or localStorage');
+  process.exit(1);
+}
+
 /*
-Local storage script;
+To POST from local storage in a different tab;
  - Enable hfConfig.enable.localStorage and transform the files
- - Open any page on the same host:port
+   - The local storage approach is sync and can be read out in sync from another tab
+ - Open a new tab, any page, on the same host:port
  - Open devtools
  - Run this script to send the data to the proxy
  - Run the page to profile
  - Data should update in UI now
-
 
 let prev = '';
 setInterval(() => {
@@ -163,13 +183,13 @@ setInterval(() => {
 */
 
 
-let prelude = `/*
+let prelude = (file) => `/*
  * @hf
  * @flow
  */
 /* eslint-disable */
 
-HF_INIT();
+HF_INIT("${file}", "${hfConfig.input.buildId}");
 
 
 // Actual code:
@@ -183,23 +203,23 @@ let postlude = `
 // HF Postlude:
 
 
-function HF_INIT() {
+function HF_INIT(fromFile, compileId) {
   if (typeof self === 'undefined') {
     if (typeof global === 'undefined') this.self = this;
     else global.self = global;
   }
   if (self.HF_STATS) return;
-  let HF_SEED = Math.random();
-  console.log('HF: setting up, seed =', HF_SEED, 'in', self, typeof top);
+  let HF_ENV_ID = ('S'+parseInt((''+Math.random()).slice(2, 8), 10)).padEnd('0', 7);    // runtime id
+  console.log('HF: setting up from', fromFile, ', compilation id =', compileId, ', env id =', HF_ENV_ID, 'in', self, typeof top);
 
   // Stop collecting if we dont do anything with the data (wrong env or wrong window or whatever)
-  let noop = typeof location === 'undefined' && ${!!hfConfig.enable.targetLocation} && location.href !== "${hfConfig.enable.targetLocation}"; 
+  let noop = typeof location !== 'undefined' && ${!!hfConfig.enable.targetLocation} && location.href !== "${hfConfig.enable.targetLocation}"; 
   if (noop) console.log('HF: this env is a noop, bad location? target=', "${hfConfig.enable.targetLocation}", ', found=', typeof location === 'undefined' ? undefined : location.href);
-  else console.log('Enabled HF in this env, seed =', HF_SEED, location);
+  else console.log('Enabled HF in this env, env id =', HF_ENV_ID, typeof location === 'undefined' || location);
 
   let HF_COUNT = 0;
   let HF_LAST_COUNT = -1;
-  self.HF_STATS = {seed: HF_SEED};
+  self.HF_STATS = {compileId, envId: HF_ENV_ID};
   function initFid(fid) {
     let fobj = HF_STATS[fid];
     if (!fobj) {
@@ -224,9 +244,9 @@ function HF_INIT() {
     }
     return nobj;
   }
+  // Chunked printing is used for environments where logging is limited, like logcat (1k-4k per line, max)
   let batchId = 0; // helps with identifying to which batch a log chunk belongs
   function logChunked(msg) {
-    // msg = '0123456789'.repeat(200);
     let step = 800; // adb logcat seems to limit messages at ~1k and there is some overhead eating into that
     let i = 0;
     let l = msg.length;
@@ -237,11 +257,11 @@ function HF_INIT() {
       i += step;
       let b = Math.min(l, i);
       let cnk = msg.slice(a, b);
-      console.log('HFc: ' + HF_SEED + ' : ' + batchId + ' : ' + (++n) + ' / ' + m + ' : ' + a + '-' + (b) + '; ' + cnk);
+      console.log('HFc: ' + HF_ENV_ID + ' : ' + batchId + ' : ' + (++n) + ' / ' + m + ' : ' + a + '-' + (b) + '; ' + cnk);
     }
     ++batchId;
   }
-  self.HF_STMT = (fid, nid, type) => {
+  self.HF_STMT = (fid, nid, contextTids, type) => {
     if (noop) return;
     ++HF_COUNT;
 
@@ -289,7 +309,7 @@ function HF_INIT() {
   (function repeat(){
     if (noop) return;
     if (self.HF_TIMER) return;
-    console.log('HF: Scheduling a flush, seed =', HF_SEED);
+    console.log('HF: Scheduling a flush, seed =', HF_ENV_ID);
     self.HF_TIMER = setTimeout(() => {
       if (noop) return;
       self.HF_TIMER = 0;
@@ -319,9 +339,9 @@ function HF_INIT() {
           nooped = false;
         }
         if (nooped) {
-          console.log('HF   - nooped :( in', HF_SEED);
+          console.warn('HF   - nooped :( in', HF_ENV_ID);
           noop = true;
-          console.log('HF: Stopping HF work; nooped (wrong env? worker/serviceworker etc?)');
+          console.warn('HF: Stopping HF work; nooped (wrong env? worker/serviceworker etc?)');
           return;
         }
       }
@@ -342,13 +362,14 @@ if (hfConfig.input.cli) {
   if (ALSO_RUN_CODE) {
     console.time('Finished "run"');
     console.timeEnd('Finished "run"');
-    console.log('run code:\n', (hfConfig.output.headerFile === 'false' ? '' : prelude) + transformOutput.run + (hfConfig.headerFile === 'false' ? '' : postlude));
+    console.log('run code:\n', (hfConfig.output.headerFile === 'false' ? '' : prelude('cli input')) + transformOutput.run + (hfConfig.headerFile === 'false' ? '' : postlude));
   }
 
   if (ALSO_VIEW_CODE) {
     console.time('Finished "view"');
     console.timeEnd('Finished "view"');
     console.log('view code:\n', transformOutput.view);
+    console.log('contexts:\n', transformOutput.contexts);
   }
 
   process.exit();
@@ -373,7 +394,7 @@ if (hfConfig.input.targetFile) {
     allFiles([{
       dir: path.dirname(file),
       offset: 0,
-      files: [file],
+      files: file.split(/\s*,\s*/),
     }]);
     process.exit();
   }
@@ -422,7 +443,7 @@ function allFiles(files) {
           .slice(1) // dir header
           .map((obj) => {
             let {file, fid, transformOutput, desc} = obj;
-            return '// ' + fid + ': ' + file + '\n' + 'bootstrap('+fid+', `' + bootstrapEscape(transformOutput.view) + "`, '" + desc + "');\n"
+            return '// ' + fid + ': ' + file + '\n' + 'bootstrap('+fid+', `' + bootstrapEscape(transformOutput.view) + "`, " + transformOutput.contexts + ", '" + desc + "');\n"
           })
           .join('\n\n')
       )
@@ -446,13 +467,16 @@ function transformFile(file, fid, fdesc = file) {
   console.timeEnd('Finished transformation');
 
   let run =
-    ((!hfConfig.output.headerFile || hfConfig.output.headerFile === file) ? prelude : '') +
+    ((!hfConfig.output.headerFile || hfConfig.output.headerFile === file) ? prelude(file) : '') +
     transformOutput.run +
     ((!hfConfig.output.headerFile || hfConfig.output.headerFile === file) ? postlude : '');
 
   if (hfConfig.output.tty || hfConfig.input.cli) {
     if (ALSO_RUN_CODE) console.log('run code:\n', run);
-    if (ALSO_VIEW_CODE) console.log('view code:\n', transformOutput.view);
+    if (ALSO_VIEW_CODE) {
+      console.log('view code:\n', transformOutput.view);
+      console.log('contexts:\n', transformOutput.contexts);
+    }
   } else {
     if (ALSO_RUN_CODE) {
       if (hfConfig.output.inline) {

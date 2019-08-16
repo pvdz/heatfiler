@@ -9,7 +9,9 @@
 
 
         .output_code { color: #999; }
-        .token { color: black; }
+        pre > .token {
+            color: black;
+        }
         .nid { border: 1px solid orange; background-color:  white; color: black; }
         .nid[title="0x (never executed)"] { border: 1px solid white; }
         .nid:hover { border: 1px solid black; cursor: help; }
@@ -128,6 +130,120 @@
         [red="r100"] { box-shadow: inset 0 0 0 1000px  hsla(0, 100%, 50%, 1); color: white }
 
     </style>
+    <style>
+        [blue="b0"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 54%, 0) }
+        [blue="b1"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 54%, 0.01) }
+        [blue="b2"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.02) }
+        [blue="b3"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.03) }
+        [blue="b4"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.04) }
+        [blue="b5"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.05) }
+        [blue="b6"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.06) }
+        [blue="b7"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.07) }
+        [blue="b8"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.08) }
+        [blue="b9"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.09) }
+
+        [blue="b10"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.10) }
+        [blue="b11"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.11) }
+        [blue="b12"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.12) }
+        [blue="b13"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.13) }
+        [blue="b14"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.14) }
+        [blue="b15"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.15) }
+        [blue="b16"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.16) }
+        [blue="b17"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.17) }
+        [blue="b18"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.18) }
+        [blue="b19"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.19) }
+
+        [blue="b20"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.20) }
+        [blue="b21"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.21) }
+        [blue="b22"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.22) }
+        [blue="b23"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.23) }
+        [blue="b24"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.24) }
+        [blue="b25"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.25) }
+        [blue="b26"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.26) }
+        [blue="b27"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.27) }
+        [blue="b28"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.28) }
+        [blue="b29"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.29) }
+
+        [blue="b30"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.30) }
+        [blue="b31"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.31) }
+        [blue="b32"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.32) }
+        [blue="b33"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.33) }
+        [blue="b34"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.34) }
+        [blue="b35"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.35) }
+        [blue="b36"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.36) }
+        [blue="b37"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.37) }
+        [blue="b38"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.38) }
+        [blue="b39"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.39) }
+
+        [blue="b40"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.40) }
+        [blue="b41"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.41) }
+        [blue="b42"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.42) }
+        [blue="b43"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.43) }
+        [blue="b44"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.44) }
+        [blue="b45"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.45) }
+        [blue="b46"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.46) }
+        [blue="b47"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.47) }
+        [blue="b48"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.48) }
+        [blue="b49"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.49) }
+
+        [blue="b50"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.50); color: white }
+        [blue="b51"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.51); color: white }
+        [blue="b52"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.52); color: white }
+        [blue="b53"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.53); color: white }
+        [blue="b54"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.54); color: white }
+        [blue="b55"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.55); color: white }
+        [blue="b56"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.56); color: white }
+        [blue="b57"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.57); color: white }
+        [blue="b58"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.58); color: white }
+        [blue="b59"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.59); color: white }
+
+        [blue="b60"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.60); color: white }
+        [blue="b61"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.61); color: white }
+        [blue="b62"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.62); color: white }
+        [blue="b63"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.63); color: white }
+        [blue="b64"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.64); color: white }
+        [blue="b65"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.65); color: white }
+        [blue="b66"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.66); color: white }
+        [blue="b67"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.67); color: white }
+        [blue="b68"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.68); color: white }
+        [blue="b69"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.69); color: white }
+
+        [blue="b70"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.70); color: white }
+        [blue="b71"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.71); color: white }
+        [blue="b72"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.72); color: white }
+        [blue="b73"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.73); color: white }
+        [blue="b74"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.74); color: white }
+        [blue="b75"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.75); color: white }
+        [blue="b76"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.76); color: white }
+        [blue="b77"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.77); color: white }
+        [blue="b78"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.78); color: white }
+        [blue="b79"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.79); color: white }
+
+        [blue="b80"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.80); color: white }
+        [blue="b81"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.81); color: white }
+        [blue="b82"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.82); color: white }
+        [blue="b83"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.83); color: white }
+        [blue="b84"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.84); color: white }
+        [blue="b85"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.85); color: white }
+        [blue="b86"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.86); color: white }
+        [blue="b87"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.87); color: white }
+        [blue="b88"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.88); color: white }
+        [blue="b89"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.89); color: white }
+
+        [blue="b90"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.90); color: white }
+        [blue="b91"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.91); color: white }
+        [blue="b92"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.92); color: white }
+        [blue="b93"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.93); color: white }
+        [blue="b94"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.94); color: white }
+        [blue="b95"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.95); color: white }
+        [blue="b96"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.96); color: white }
+        [blue="b97"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.97); color: white }
+        [blue="b98"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.98); color: white }
+        [blue="b99"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 0.99); color: white }
+
+        [blue="b100"] { box-shadow: inset 0 0 0 1000px  hsla(240, 100%, 50%, 1); color: white }
+
+    </style>
 </head>
 <body>
     <h2 id="$output_file" class="output_file"></h2>
@@ -136,11 +252,17 @@
         <div>
             <div>Current file: <span id="$current_file_name"></span></div>
             <div>
-                <button id="$toggle_baseline">Toggle Baseline</button>
-                <button id="$toggle_freeze">Toggle Freeze</button>
+                <button id="$toggle_baseline" style="cursor: help" title="If enabled, shows counts relative to what they currently are">Toggle Baseline</button>
+                <button id="$toggle_freeze" style="cursor: help" title="Ignore further stats updates until unfrozen">Toggle Freeze</button>
                 <label><input id="$toggle_menu_files" type="radio" name="menu" value="files" checked> files</label>
                 <label><input id="$toggle_menu_stats" type="radio" name="menu" value="stats"> stats</label>
                 <label><input id="$toggle_menu_closed" type="radio" name="menu" value="stats"> close</label>
+            </div>
+            <div>
+                <span style="cursor: help" title="These are env instances that generate stats. They are ordered left-to-right, from the most recent to oldest update received. The list auto-updates as server receives new instances. A refresh/restart of app creates new env ids.">[?]</span>
+                <span id="$envs">
+                    <span style="color:red">Waiting for proxy connection...</span>
+                </span>
             </div>
             <div id="$side_panel_menu"></div>
         </div>
@@ -150,5 +272,7 @@
 <!--    <script src="../node_modules/prettier/standalone.js"></script>-->
 <!--    <script src="../node_modules/prettier/parser-babylon.js"></script>-->
     <script type="module" src="index.mjs"></script>
-    <script type="module" src="../data.view.js"></script>
+    <script type="module" src="data.view.js"></script>
+    <script type="module" src="envs.js"></script>
 </body>
+</html>
